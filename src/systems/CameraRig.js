@@ -47,7 +47,7 @@ export class CameraRig {
     const fwd = car.forward.clone();   // unit vector car is FACING (toward -Z local)
     // "behind" = opposite of forward
     const back = fwd.clone().negate();
-    const right = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+    const right = new THREE.Vector3(fwd.z, 0, -fwd.x).normalize();
     const shake = car.cameraShake * (Math.random() - 0.5) * 0.6;
 
     // Target point to look at — slightly ahead of the car on the road

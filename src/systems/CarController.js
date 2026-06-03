@@ -212,7 +212,7 @@ export class CarController {
     const curveYaw = Math.atan2(tangent.x, tangent.z);
 
     // Drift yaw: rear swings out
-    const steeringYaw = this.steer * Math.min(0.38, Math.abs(this.speed) / 140);
+    const steeringYaw = -this.steer * Math.min(0.38, Math.abs(this.speed) / 140);
     const driftYaw = -this.driftAmount * 0.82;
     this.yaw = THREE.MathUtils.lerp(this.yaw, curveYaw + steeringYaw + driftYaw, this.drifting ? 0.28 : 0.18);
 
@@ -239,7 +239,7 @@ export class CarController {
       wheel.rotation.x -= spinRate * 0.017; // continuous spin
       // Front wheels steer
       if (wheel.userData.isFront) {
-        wheel.rotation.y = this.steer * 0.42;
+        wheel.rotation.y = -this.steer * 0.42;
       }
     }
 
