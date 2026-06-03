@@ -1,0 +1,266 @@
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #05070a;
+  color: #eef8ff;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.topbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand,
+.telemetry,
+.speedo,
+.race,
+.garage,
+.prompt {
+  border: 1px solid rgba(125, 222, 255, 0.24);
+  background: rgba(5, 13, 18, 0.58);
+  box-shadow:
+    inset 0 0 20px rgba(99, 223, 255, 0.08),
+    0 0 28px rgba(0, 180, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  display: grid;
+  gap: 2px;
+  min-width: 178px;
+  padding: 12px 14px;
+  border-radius: 7px;
+}
+
+.brand strong {
+  font-size: 20px;
+  letter-spacing: 0.14em;
+}
+
+.brand span,
+.telemetry span,
+.race span,
+.speedo span,
+.garage label,
+.prompt {
+  color: rgba(232, 247, 255, 0.75);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.telemetry {
+  display: flex;
+  gap: 7px;
+  padding: 7px;
+  border-radius: 7px;
+}
+
+.telemetry span {
+  min-width: 76px;
+  padding: 8px 9px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.speedo {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 210px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.speedo strong {
+  display: block;
+  color: #ffffff;
+  font-size: 58px;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+}
+
+.bar {
+  height: 8px;
+  margin: 12px 0 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bar i {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4df5ff, #ffe66a, #ff375f);
+  box-shadow: 0 0 16px rgba(77, 245, 255, 0.45);
+}
+
+.mini {
+  display: flex;
+  justify-content: space-between;
+}
+
+.race {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  display: flex;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 8px;
+}
+
+.race div {
+  display: grid;
+  min-width: 82px;
+  gap: 3px;
+  padding: 8px 10px;
+}
+
+.race strong {
+  color: #fff;
+  font-size: 18px;
+}
+
+.garage {
+  position: absolute;
+  top: 96px;
+  right: 16px;
+  display: grid;
+  width: 250px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  pointer-events: auto;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.garage.closed {
+  transform: translateX(calc(100% + 24px));
+  opacity: 0.2;
+}
+
+.garage header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+}
+
+.garage header strong {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.garage label {
+  display: grid;
+  gap: 6px;
+}
+
+.garage select,
+.garage button {
+  width: 100%;
+  color: #eef8ff;
+  border: 1px solid rgba(145, 229, 255, 0.28);
+  border-radius: 6px;
+  background: rgba(2, 7, 10, 0.75);
+  padding: 10px;
+  font: inherit;
+}
+
+.garage button {
+  width: auto;
+  cursor: pointer;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.garage .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.garage input {
+  accent-color: #42eaff;
+}
+
+.prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  max-width: min(700px, calc(100vw - 36px));
+  transform: translateX(-50%);
+  padding: 12px 14px;
+  border-radius: 7px;
+  text-align: center;
+}
+
+body.driving .prompt {
+  opacity: 0;
+}
+
+@media (max-width: 820px) {
+  .garage {
+    top: 88px;
+    right: 10px;
+    width: min(240px, calc(100vw - 20px));
+  }
+
+  .telemetry {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .race {
+    left: 10px;
+    bottom: 10px;
+    flex-direction: column;
+  }
+
+  .speedo {
+    right: 10px;
+    bottom: 10px;
+    width: 168px;
+  }
+
+  .speedo strong {
+    font-size: 44px;
+  }
+
+  .prompt {
+    display: none;
+  }
+}

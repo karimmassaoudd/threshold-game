@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APEX DRIVE 4K</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game"></canvas>
+
+      <section class="hud" aria-label="Driving HUD">
+        <div class="topbar">
+          <div class="brand">
+            <strong>APEX DRIVE</strong>
+            <span>4K street sprint</span>
+          </div>
+          <div class="telemetry">
+            <span id="fps">-- FPS</span>
+            <span id="quality">ULTRA</span>
+            <span id="cameraMode">CHASE</span>
+          </div>
+        </div>
+
+        <div class="speedo">
+          <span>km/h</span>
+          <strong id="speed">000</strong>
+          <div class="bar"><i id="rpm"></i></div>
+          <div class="mini">
+            <span id="gear">D</span>
+            <span id="nitro">NITRO 100%</span>
+          </div>
+        </div>
+
+        <div class="race">
+          <div><span>lap</span><strong id="lap">1/3</strong></div>
+          <div><span>time</span><strong id="time">00.00</strong></div>
+          <div><span>damage</span><strong id="damage">0%</strong></div>
+        </div>
+
+        <aside class="garage closed" id="garage">
+          <header>
+            <strong>Garage</strong>
+            <button id="garageToggle" type="button">Show</button>
+          </header>
+
+          <label>
+            Quality
+            <select id="qualitySelect">
+              <option value="ultra">4K Ultra</option>
+              <option value="balanced">Balanced</option>
+              <option value="fps">240 FPS</option>
+            </select>
+          </label>
+
+          <label>
+            Weather
+            <select id="weatherSelect">
+              <option value="clear">Clear</option>
+              <option value="rain">Rain</option>
+              <option value="storm">Storm</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </label>
+
+          <label>
+            Camera
+            <select id="cameraSelect">
+              <option value="chase">Chase</option>
+              <option value="hood">Hood</option>
+              <option value="cinematic">Cinematic</option>
+            </select>
+          </label>
+
+          <label>
+            Paint
+            <select id="paintSelect">
+              <option value="cyan">Neon Cyan</option>
+              <option value="red">Inferno Red</option>
+              <option value="black">Carbon Black</option>
+              <option value="white">Pearl White</option>
+            </select>
+          </label>
+
+          <label>
+            Traffic
+            <select id="trafficSelect">
+              <option value="normal">Normal</option>
+              <option value="heavy">Heavy</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+
+          <label class="check">
+            <input id="assistToggle" type="checkbox" checked />
+            Stability assist
+          </label>
+        </aside>
+
+        <div class="prompt" id="prompt">
+          Click to drive. WASD or arrows. Space handbrake. Shift nitro. C camera. G garage. R reset.
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
