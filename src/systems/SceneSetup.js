@@ -1,111 +1,175 @@
 import * as THREE from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { EffectComposer }  from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass }      from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import { QUALITY } from "../config.js";
+import { AfterimagePass }  from "three/examples/jsm/postprocessing/AfterimagePass.js";
+import { OutputPass }      from "three/examples/jsm/postprocessing/OutputPass.js";
+import { QUALITY }         from "../config.js";
 
 export class SceneSetup {
   constructor(canvas, settings) {
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x7fc8ff);
-    this.scene.fog = new THREE.FogExp2(0xa8ddff, 0.0012);
-    this.camera = new THREE.PerspectiveCamera(64, window.innerWidth / window.innerHeight, 0.1, 2200);
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.canvas = canvas;
 
-    this.sun = new THREE.DirectionalLight(0xffffff, 3.2);
+    // ── Scene ─────────────────────────────────────────────────────────────────
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x8fd0f0);
+    this.scene.fog = new THREE.FogExp2(0xb0ddf7, 0.0010);
+
+    // ── Camera ────────────────────────────────────────────────────────────────
+    this.camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.18, 2000);
+    this._targetFov = 68;
+
+    // ── Renderer ──────────────────────────────────────────────────────────────
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      powerPreference: "high-performance",
+    });
+    this.renderer.outputColorSpace    = THREE.SRGBColorSpace;
+    this.renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.shadowMap.enabled   = true;
+    this.renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
+
+    // ── Lights ────────────────────────────────────────────────────────────────
+    // Main sun — close shadow frustum for crisp shadows near car
+    this.sun = new THREE.DirectionalLight(0xffffff, 3.4);
     this.sun.castShadow = true;
-    this.sun.shadow.camera.left = -130;
-    this.sun.shadow.camera.right = 130;
-    this.sun.shadow.camera.top = 130;
-    this.sun.shadow.camera.bottom = -130;
-    this.sun.shadow.camera.near = 1;
-    this.sun.shadow.camera.far = 360;
+    this.sun.shadow.camera.left   = -80;
+    this.sun.shadow.camera.right  =  80;
+    this.sun.shadow.camera.top    =  80;
+    this.sun.shadow.camera.bottom = -80;
+    this.sun.shadow.camera.near   =   1;
+    this.sun.shadow.camera.far    = 280;
+    this.sun.shadow.bias          = -0.001;
     this.sunTarget = new THREE.Object3D();
     this.scene.add(this.sunTarget);
     this.sun.target = this.sunTarget;
     this.scene.add(this.sun);
-    this.hemi = new THREE.HemisphereLight(0x9ee9ff, 0x17211f, 1.8);
+
+    // Hemisphere (sky / ground bounce)
+    this.hemi = new THREE.HemisphereLight(0xa8deff, 0x1a2e1e, 1.9);
     this.scene.add(this.hemi);
 
-    this.renderPass = new RenderPass(this.scene, this.camera);
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.8, 0.55, 0.18);
-    this.afterimage = new AfterimagePass();
-    this.afterimage.uniforms.damp.value = 0.94;
-    this.output = new OutputPass();
+    // Fill light from front-left for car visibility
+    this.fill = new THREE.DirectionalLight(0xffeedd, 0.55);
+    this.fill.position.set(-30, 18, -25);
+    this.scene.add(this.fill);
+
+    // ── Post-processing ───────────────────────────────────────────────────────
+    this.renderPass  = new RenderPass(this.scene, this.camera);
+    this.bloom       = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.55, 0.42, 0.16
+    );
+    this.afterimage  = new AfterimagePass();
+    this.afterimage.uniforms.damp.value = 0.88;
+    this.afterimage.enabled = false;
+    this.output      = new OutputPass();
+
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(this.renderPass);
     this.composer.addPass(this.bloom);
     this.composer.addPass(this.afterimage);
     this.composer.addPass(this.output);
-    this.rain = this.createRain();
+
+    // ── Rain particles ────────────────────────────────────────────────────────
+    this.rain = this._createRain();
     this.scene.add(this.rain);
+
+    // ── Speed line overlay (HTML/CSS) ─────────────────────────────────────────
+    this._speedLinesEl = document.getElementById("speedLines");
+    this._basePixelRatio = 1;
+    this._adaptiveScale = 1;
+
     this.resize();
     this.applySettings(settings);
   }
 
-  createRain() {
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(1200 * 3);
-    for (let i = 0; i < positions.length / 3; i += 1) {
-      positions[i * 3] = (Math.random() - 0.5) * 150;
-      positions[i * 3 + 1] = Math.random() * 70;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 220;
+  _createRain() {
+    const COUNT = 450;
+    const geo   = new THREE.BufferGeometry();
+    const pos   = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) {
+      pos[i * 3]     = (Math.random() - 0.5) * 180;
+      pos[i * 3 + 1] = Math.random() * 80;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 240;
     }
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return new THREE.Points(geometry, new THREE.PointsMaterial({
-      color: 0xbdefff,
-      size: 0.085,
-      transparent: true,
-      opacity: 0,
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return new THREE.Points(geo, new THREE.PointsMaterial({
+      color: 0xbdefff, size: 0.09, transparent: true, opacity: 0,
     }));
   }
 
   applySettings(settings) {
-    const quality = QUALITY[settings.graphics];
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.dpr));
-    this.sun.shadow.mapSize.set(quality.shadowSize, quality.shadowSize);
+    const q = QUALITY[settings.graphics];
+    this._adaptiveScale = 1;
+    this._basePixelRatio = Math.min(window.devicePixelRatio || 1, q.dpr);
+    this.renderer.setPixelRatio(this._basePixelRatio);
+    this.sun.shadow.mapSize.set(q.shadowSize, q.shadowSize);
     this.renderer.shadowMap.enabled = settings.shadows;
-    this.bloom.strength = settings.postProcessing ? quality.bloom : 0;
-    this.afterimage.enabled = settings.postProcessing;
-    this.scene.fog.density = quality.fog;
+    this.bloom.strength = settings.postProcessing ? q.bloom : 0;
+    this.scene.fog.density = q.fog;
 
-    const weather = {
-      Clear: [0x7fc8ff, 0xa8ddff, 3.2, 1.8, 0],
-      Rain: [0x263a46, 0x2d4857, 1.55, 1.2, 0.55],
-      Storm: [0x111920, 0x15222b, 0.9, 0.85, 0.95],
-      Sunset: [0xff9f6b, 0xf0a16d, 2.7, 1.55, 0],
-    }[settings.weather];
-    this.scene.background.setHex(weather[0]);
-    this.scene.fog.color.setHex(weather[1]);
-    this.sun.intensity = weather[2];
-    this.hemi.intensity = weather[3];
-    this.rain.material.opacity = weather[4];
+    // Weather presets: [bgHex, fogHex, sunIntensity, hemiIntensity, rainOpacity, exposure]
+    const wx = {
+      Clear:  [0x8fd0f0, 0xb0ddf7, 3.4, 1.9, 0,   1.08],
+      Rain:   [0x263a46, 0x2d4857, 1.6, 1.2, 0.5,  0.88],
+      Storm:  [0x111920, 0x15222b, 0.9, 0.8, 0.92, 0.72],
+      Sunset: [0xff8c50, 0xf0904d, 2.9, 1.5, 0,    1.22],
+    }[settings.weather] ?? [0x8fd0f0, 0xb0ddf7, 3.4, 1.9, 0, 1.08];
+
+    this.scene.background.setHex(wx[0]);
+    this.scene.fog.color.setHex(wx[1]);
+    this.sun.intensity           = wx[2];
+    this.hemi.intensity          = wx[3];
+    this.rain.material.opacity   = wx[4];
+    this.renderer.toneMappingExposure = wx[5];
+
     this.resize();
   }
 
-  update(dt, car) {
+  reducePerformanceCost() {
+    this._adaptiveScale = Math.max(0.45, this._adaptiveScale - 0.08);
+    this.renderer.setPixelRatio(this._basePixelRatio * this._adaptiveScale);
+    this.resize();
+  }
+
+  update(dt, car, settings) {
+    const speedKmh = Math.abs(car.speed * 3.6);
+
+    // Sun tracks car tightly for consistent shadows
     this.sunTarget.position.copy(car.position);
-    this.sun.position.copy(car.position).add(new THREE.Vector3(-95, 130, 72));
-    this.afterimage.uniforms.damp.value = car.turboActive ? 0.82 : 0.94;
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, car.turboActive ? 76 : 64, 1 - Math.pow(0.0005, dt));
+    this.sun.position.copy(car.position).add(new THREE.Vector3(-85, 120, 65));
+
+    // Fill light orbits slightly for dynamic feel
+    this.fill.position.copy(car.position).add(new THREE.Vector3(-30, 18, -25));
+
+    // Motion blur during turbo
+    this.afterimage.enabled = settings.postProcessing && car.turboActive;
+    this.afterimage.uniforms.damp.value = 0.90;
+
+    // FOV: widens gently with speed, jumps on turbo
+    const targetFov = car.turboActive ? 80 : 62 + Math.min(12, speedKmh * 0.065);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, 1 - Math.pow(0.0004, dt));
     this.camera.updateProjectionMatrix();
 
+    // Speed line overlay intensity
+    if (this._speedLinesEl) {
+      const intensity = car.turboActive ? 1 : 0;
+      this._speedLinesEl.style.opacity = intensity.toFixed(3);
+    }
+
+    // Rain particle update
     if (this.rain.material.opacity > 0.01) {
       const data = this.rain.geometry.attributes.position.array;
-      for (let i = 0; i < data.length / 3; i += 1) {
-        data[i * 3 + 1] -= 76 * dt;
-        data[i * 3 + 2] += car.speed * dt * 2.8;
-        if (data[i * 3 + 1] < -3) {
-          data[i * 3] = car.position.x + (Math.random() - 0.5) * 130;
-          data[i * 3 + 1] = 65;
-          data[i * 3 + 2] = car.position.z + (Math.random() - 0.5) * 180;
+      for (let i = 0; i < data.length / 3; i++) {
+        data[i * 3 + 1] -= 88 * dt;
+        data[i * 3 + 2] += car.speed * dt * 3.2;
+        if (data[i * 3 + 1] < -4) {
+          data[i * 3]     = car.position.x + (Math.random() - 0.5) * 160;
+          data[i * 3 + 1] = 72;
+          data[i * 3 + 2] = car.position.z + (Math.random() - 0.5) * 200;
         }
       }
       this.rain.geometry.attributes.position.needsUpdate = true;
@@ -113,13 +177,19 @@ export class SceneSetup {
   }
 
   resize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-    this.composer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(w, h, false);
+    this.composer.setSize(w, h);
   }
 
   render() {
+    if (this.bloom.strength <= 0 && !this.afterimage.enabled) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
     this.composer.render();
   }
 }

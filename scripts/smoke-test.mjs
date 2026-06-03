@@ -3,8 +3,8 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const targetUrl = "http://127.0.0.1:5176/";
-const port = 9236;
+const targetUrl = "http://127.0.0.1:5177/";
+const port = 9237;
 const userDataDir = new URL("../.chrome-smoke-car", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const screenshotPath = new URL("../apex-drive-smoke.png", import.meta.url);
 
@@ -82,14 +82,48 @@ await send("Page.enable");
 await send("Page.navigate", { url: targetUrl });
 await delay(1800);
 
+await send("Input.dispatchMouseEvent", { type: "mousePressed", x: 640, y: 360, button: "left", clickCount: 1 });
+await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: 640, y: 360, button: "left", clickCount: 1 });
+await delay(400);
+
+await send("Runtime.evaluate", {
+  expression: `(() => {
+    const setSelect = (id, value) => {
+      const node = document.querySelector(id);
+      if (!node) return;
+      node.value = value;
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    setSelect("#qualitySelect", "240 FPS");
+    setSelect("#cameraSelect", "Chase");
+  })()`,
+});
+await send("Input.dispatchKeyEvent", { type: "keyDown", code: "KeyW", key: "w", windowsVirtualKeyCode: 87 });
+await send("Input.dispatchKeyEvent", { type: "keyDown", code: "ShiftLeft", key: "Shift", windowsVirtualKeyCode: 16 });
+await delay(1300);
+await send("Input.dispatchKeyEvent", { type: "keyUp", code: "ShiftLeft", key: "Shift", windowsVirtualKeyCode: 16 });
+await send("Input.dispatchKeyEvent", { type: "keyDown", code: "KeyA", key: "a", windowsVirtualKeyCode: 65 });
+await send("Input.dispatchKeyEvent", { type: "keyDown", code: "Space", key: " ", windowsVirtualKeyCode: 32 });
+await delay(900);
+await send("Input.dispatchKeyEvent", { type: "keyUp", code: "Space", key: " ", windowsVirtualKeyCode: 32 });
+await send("Input.dispatchKeyEvent", { type: "keyUp", code: "KeyA", key: "a", windowsVirtualKeyCode: 65 });
+await send("Input.dispatchKeyEvent", { type: "keyUp", code: "KeyW", key: "w", windowsVirtualKeyCode: 87 });
+await delay(500);
+
 const sample = await send("Runtime.evaluate", {
   returnByValue: true,
   expression: `(() => ({
     title: document.title,
     fps: document.querySelector("#fps")?.textContent,
     quality: document.querySelector("#quality")?.textContent,
+    camera: document.querySelector("#cameraMode")?.textContent,
     speed: document.querySelector("#speed")?.textContent,
     lap: document.querySelector("#lap")?.textContent,
+    drift: window.__apexDrive?.car ? {
+      drifting: window.__apexDrive.car.drifting,
+      slip: Number(window.__apexDrive.car.slip.toFixed(3)),
+      driftAmount: Number(window.__apexDrive.car.driftAmount.toFixed(3))
+    } : null,
     canvas: (() => {
       const c = document.querySelector("canvas");
       return c ? { width: c.width, height: c.height } : null;

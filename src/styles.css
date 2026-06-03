@@ -1,266 +1,586 @@
-html,
-body,
-#app {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  background: #05070a;
-  color: #eef8ff;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:   #10d9ff;
+  --accent2:  #ff2438;
+  --turbo:    #ffcc00;
+  --bg:       #080c10;
+  --glass:    rgba(6, 12, 20, 0.72);
+  --border:   rgba(16, 217, 255, 0.18);
+  --text:     #d0eaf5;
+  --dim:      rgba(255,255,255,0.45);
+  --font-hud: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  --font-ui:  Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --r:        8px;
+  --rL:       14px;
 }
 
-canvas {
-  position: fixed;
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font-ui);
+  color: var(--text);
+}
+
+#app {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Canvas ─────────────────────────────────────────────────────────────── */
+#game {
+  position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   display: block;
 }
 
-.hud {
-  position: fixed;
+/* ── Speed lines overlay ─────────────────────────────────────────────────── */
+#speedLines {
+  position: absolute;
   inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background:
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255,255,255,0.06) 0deg 1deg,
+      transparent 1deg 6deg
+    );
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+
+/* ── HUD Container ───────────────────────────────────────────────────────── */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.hud > * { pointer-events: auto; }
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%);
   pointer-events: none;
 }
 
-.topbar {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.brand,
-.telemetry,
-.speedo,
-.race,
-.garage,
-.prompt {
-  border: 1px solid rgba(125, 222, 255, 0.24);
-  background: rgba(5, 13, 18, 0.58);
-  box-shadow:
-    inset 0 0 20px rgba(99, 223, 255, 0.08),
-    0 0 28px rgba(0, 180, 255, 0.08);
-  backdrop-filter: blur(12px);
-}
-
 .brand {
-  display: grid;
-  gap: 2px;
-  min-width: 178px;
-  padding: 12px 14px;
-  border-radius: 7px;
+  font-family: var(--font-hud);
+  letter-spacing: 0.12em;
+  line-height: 1;
 }
-
 .brand strong {
-  font-size: 20px;
-  letter-spacing: 0.14em;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent);
 }
-
-.brand span,
-.telemetry span,
-.race span,
-.speedo span,
-.garage label,
-.prompt {
-  color: rgba(232, 247, 255, 0.75);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.brand span {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--dim);
+  display: block;
+  letter-spacing: 0.25em;
+  margin-top: 1px;
 }
 
 .telemetry {
   display: flex;
-  gap: 7px;
-  padding: 7px;
-  border-radius: 7px;
+  gap: 14px;
+  font-family: var(--font-hud);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.6);
 }
+.telemetry span { padding: 3px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; }
 
-.telemetry span {
-  min-width: 76px;
-  padding: 8px 9px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 5px;
-}
-
+/* ── Speedometer ─────────────────────────────────────────────────────────── */
 .speedo {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
-  width: 210px;
-  padding: 16px;
-  border-radius: 8px;
+  bottom: 28px;
+  right: 28px;
+  width: 190px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--rL);
+  padding: 14px 16px 10px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 32px rgba(16,217,255,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-.speedo strong {
-  display: block;
-  color: #ffffff;
-  font-size: 58px;
-  line-height: 0.9;
-  letter-spacing: 0.02em;
+.speedo-inner {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.speedo-inner strong {
+  font-family: var(--font-hud);
+  font-size: 3.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 20px rgba(255,255,255,0.4);
+}
+.unit {
+  font-family: var(--font-hud);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+  align-self: flex-end;
+  padding-bottom: 10px;
 }
 
-.bar {
-  height: 8px;
-  margin: 12px 0 9px;
+/* RPM bar */
+.rpm-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
   overflow: hidden;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
 }
-
-.bar i {
+.rpm-bar i {
   display: block;
-  width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #4df5ff, #ffe66a, #ff375f);
-  box-shadow: 0 0 16px rgba(77, 245, 255, 0.45);
+  background: linear-gradient(90deg, var(--accent), #ff6600, var(--accent2));
+  border-radius: 3px;
+  transition: width 0.05s linear;
+  box-shadow: 0 0 8px var(--accent);
+  width: 0%;
 }
 
-.mini {
+.mini-hud {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
-.race {
+.gear-badge {
+  font-family: var(--font-hud);
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent);
+  width: 30px;
+  text-align: center;
+}
+
+.turbo-badge {
+  font-family: var(--font-hud);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--turbo);
+  text-shadow: 0 0 8px var(--turbo);
+  background: rgba(255,204,0,0.08);
+  border: 1px solid rgba(255,204,0,0.25);
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+
+/* ── Race Info ───────────────────────────────────────────────────────────── */
+.race-info {
   position: absolute;
-  left: 18px;
-  bottom: 18px;
+  bottom: 28px;
+  left: 28px;
   display: flex;
-  gap: 8px;
-  padding: 9px;
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--rL);
+  padding: 12px 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 140px;
+  box-shadow: 0 0 32px rgba(16,217,255,0.08);
 }
 
-.race div {
-  display: grid;
-  min-width: 82px;
-  gap: 3px;
-  padding: 8px 10px;
+.ri-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
 }
-
-.race strong {
+.ri-item span {
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+}
+.ri-item strong {
+  font-family: var(--font-hud);
+  font-size: 0.95rem;
+  font-weight: 700;
   color: #fff;
-  font-size: 18px;
 }
 
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.progress-bar span {
+  font-family: var(--font-hud);
+  font-size: 0.58rem;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
+.progress-bar em {
+  display: block;
+  height: 5px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #0af);
+  border-radius: 3px;
+  box-shadow: 0 0 6px var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* ── Settings / Garage panel ─────────────────────────────────────────────── */
 .garage {
   position: absolute;
-  top: 96px;
-  right: 16px;
-  display: grid;
-  width: 250px;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 8px;
-  pointer-events: auto;
-  transition:
-    transform 180ms ease,
-    opacity 180ms ease;
+  top: 60px;
+  right: 0;
+  width: 300px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  background: rgba(5, 10, 17, 0.90);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: var(--rL) 0 0 var(--rL);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.6);
+  padding: 0 0 16px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .garage.closed {
-  transform: translateX(calc(100% + 24px));
-  opacity: 0.2;
+  transform: translateX(100%);
 }
+.garage::-webkit-scrollbar { width: 4px; }
+.garage::-webkit-scrollbar-track { background: transparent; }
+.garage::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.garage header {
+.garage > header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  color: #fff;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(16, 217, 255, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.garage > header strong {
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+#garageToggle {
+  font-family: var(--font-hud);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(16, 217, 255, 0.12);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+#garageToggle:hover {
+  background: rgba(16, 217, 255, 0.22);
+  box-shadow: 0 0 12px rgba(16,217,255,0.3);
 }
 
-.garage header strong {
-  font-size: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+/* G key shortcut toggle button (always visible) */
+.garage-shortcut {
+  position: absolute;
+  top: 72px;
+  right: 12px;
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px 0;
+  gap: 4px;
+}
+.tab {
+  font-family: var(--font-hud);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--dim);
+  padding: 7px 10px 6px;
+  border-radius: 5px 5px 0 0;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.tab.active {
+  color: var(--accent);
+  border-color: var(--border);
+  background: rgba(16,217,255,0.07);
+  border-bottom-color: transparent;
+}
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── Tab panes ─────────────────────────────────────────────────────────────── */
+.tab-pane { display: none; padding: 12px 16px; }
+.tab-pane.active { display: flex; flex-direction: column; gap: 10px; }
+
+/* Labels & inputs inside panel */
 .garage label {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 0.04em;
+}
+.garage label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .garage select,
-.garage button {
+.garage input[type="range"] {
   width: 100%;
-  color: #eef8ff;
-  border: 1px solid rgba(145, 229, 255, 0.28);
-  border-radius: 6px;
-  background: rgba(2, 7, 10, 0.75);
-  padding: 10px;
-  font: inherit;
-}
-
-.garage button {
-  width: auto;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  appearance: none;
   cursor: pointer;
-  padding: 7px 10px;
-  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.garage select:hover,
+.garage input[type="range"]:hover { border-color: var(--accent); }
+
+.garage input[type="range"] {
+  padding: 0;
+  height: 5px;
+  background: linear-gradient(to right, var(--accent) 0%, rgba(255,255,255,0.12) 0%);
+  border-radius: 3px;
+  margin-top: 4px;
 }
 
-.garage .check {
+.garage input[type="checkbox"] {
+  appearance: none;
+  width: 16px; height: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.garage input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.garage input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #000;
+  font-weight: 900;
 }
 
-.garage input {
-  accent-color: #42eaff;
+/* Control hints */
+.control-hint {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.control-hint p {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+.control-hint p::first-child { color: var(--text); }
+
+.btn-danger {
+  margin: 8px 16px 0;
+  width: calc(100% - 32px);
+  padding: 10px;
+  font-family: var(--font-hud);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  background: rgba(255, 36, 56, 0.12);
+  border: 1px solid rgba(255, 36, 56, 0.35);
+  color: var(--accent2);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-danger:hover {
+  background: rgba(255, 36, 56, 0.22);
+  box-shadow: 0 0 14px rgba(255, 36, 56, 0.3);
 }
 
+/* ── Start Prompt ─────────────────────────────────────────────────────────── */
 .prompt {
   position: absolute;
-  left: 50%;
-  bottom: 22px;
-  max-width: min(700px, calc(100vw - 36px));
-  transform: translateX(-50%);
-  padding: 12px 14px;
-  border-radius: 7px;
-  text-align: center;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 8, 14, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.5s ease;
+  z-index: 20;
 }
-
-body.driving .prompt {
+.prompt.hidden {
   opacity: 0;
+  pointer-events: none;
+}
+.prompt-inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.prompt-inner strong {
+  font-family: var(--font-hud);
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-shadow: 0 0 40px var(--accent), 0 0 80px rgba(16,217,255,0.4);
+  animation: glowPulse 2.5s ease-in-out infinite;
+}
+.prompt-inner p {
+  font-family: var(--font-hud);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.85);
+  animation: blink 1.4s step-end infinite;
+}
+.prompt-sub {
+  font-size: 0.65rem !important;
+  color: var(--dim) !important;
+  animation: none !important;
+  letter-spacing: 0.08em !important;
+  max-width: 480px;
+  line-height: 1.6;
 }
 
-@media (max-width: 820px) {
-  .garage {
-    top: 88px;
-    right: 10px;
-    width: min(240px, calc(100vw - 20px));
-  }
+/* ── Damage flash ────────────────────────────────────────────────────────── */
+.hud.damage-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 0, 30, 0.18);
+  pointer-events: none;
+  animation: flashOut 0.35s ease forwards;
+}
 
-  .telemetry {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes glowPulse {
+  0%, 100% { text-shadow: 0 0 30px var(--accent), 0 0 60px rgba(16,217,255,0.35); }
+  50%       { text-shadow: 0 0 60px var(--accent), 0 0 120px rgba(16,217,255,0.5); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+@keyframes flashOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
 
-  .race {
-    left: 10px;
-    bottom: 10px;
-    flex-direction: column;
-  }
+/* ── Turbo active — accent glow on speedo ────────────────────────────────── */
+body.turbo-active .speedo {
+  box-shadow: 0 0 40px rgba(255, 204, 0, 0.35), 0 0 80px rgba(255,204,0,0.15);
+  border-color: rgba(255, 204, 0, 0.35);
+}
+body.turbo-active .turbo-badge {
+  animation: turboPulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes turboPulse {
+  from { box-shadow: none; }
+  to   { box-shadow: 0 0 12px var(--turbo); }
+}
 
-  .speedo {
-    right: 10px;
-    bottom: 10px;
-    width: 168px;
-  }
+/* ── Driving mode (hide prompt) ─────────────────────────────────────────── */
+body.driving .prompt { opacity: 0; pointer-events: none; }
 
-  .speedo strong {
-    font-size: 44px;
-  }
+/* 240 FPS target: avoid expensive full-screen backdrop blur. */
+.brand,
+.telemetry,
+.speedo,
+.race-info,
+.garage,
+.prompt {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 
-  .prompt {
-    display: none;
-  }
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .speedo { width: 150px; bottom: 14px; right: 14px; }
+  .speedo-inner strong { font-size: 2.6rem; }
+  .race-info { bottom: 14px; left: 14px; padding: 8px 12px; }
+  .garage { width: 260px; }
+  .prompt-inner strong { font-size: 2.6rem; }
 }

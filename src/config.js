@@ -38,21 +38,21 @@ export const CAR_PRESETS = [
 ];
 
 export const DEFAULT_SETTINGS = {
-  graphics: "Ultra",
+  graphics: "240 FPS",
   soundVolume: 0.75,
   musicVolume: 0.35,
   cameraSensitivity: 0.65,
   controlScheme: "WASD",
-  shadows: true,
-  postProcessing: true,
+  shadows: false,
+  postProcessing: false,
   weather: "Clear",
   cameraMode: "Chase",
-  traffic: "Normal",
+  traffic: "Off",
   stabilityAssist: true,
 };
 
 export const QUALITY = {
-  Ultra: { dpr: 1.75, shadowSize: 2048, bloom: 0.85, fog: 0.0012 },
-  Balanced: { dpr: 1.2, shadowSize: 1024, bloom: 0.55, fog: 0.0014 },
-  "240 FPS": { dpr: 0.85, shadowSize: 512, bloom: 0.25, fog: 0.0017 },
+  Ultra: { dpr: 1.35, shadowSize: 1536, bloom: 0.38, fog: 0.0005 },
+  Balanced: { dpr: 0.95, shadowSize: 768, bloom: 0.24, fog: 0.00058 },
+  "240 FPS": { dpr: 0.32, shadowSize: 128, bloom: 0.0, fog: 0.00062 },
 };
