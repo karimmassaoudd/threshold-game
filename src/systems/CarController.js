@@ -137,7 +137,7 @@ export class CarController {
 
     // ── Steering ─────────────────────────────────────────────────────────────
     // Speed-sensitive: fast car = less steering range, slower response
-    const steerTarget  = (left ? 1 : 0) - (right ? 1 : 0);
+    const steerTarget  = (right ? 1 : 0) - (left ? 1 : 0);
     const steerRate    = 1 - Math.pow(0.0004, dt);
     this.steer = THREE.MathUtils.lerp(this.steer, steerTarget, steerRate);
 
@@ -212,7 +212,7 @@ export class CarController {
     const curveYaw = Math.atan2(tangent.x, tangent.z);
 
     // Drift yaw: rear swings out
-    const steeringYaw = -this.steer * Math.min(0.38, Math.abs(this.speed) / 140);
+    const steeringYaw = this.steer * Math.min(0.38, Math.abs(this.speed) / 140);
     const driftYaw = -this.driftAmount * 0.82;
     this.yaw = THREE.MathUtils.lerp(this.yaw, curveYaw + steeringYaw + driftYaw, this.drifting ? 0.28 : 0.18);
 

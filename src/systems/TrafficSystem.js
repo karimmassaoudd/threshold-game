@@ -22,7 +22,15 @@ export class TrafficSystem {
       const body = new CANNON.Body({ mass: 0, material: physics.materials.barrier });
       body.addShape(new CANNON.Box(new CANNON.Vec3(0.95, 0.36, 2.05)));
       physics.addBody(body);
-      this.cars.push({ mesh, body, lane: [-5.2, -1.8, 1.8, 5.2][i % 4], offset: 180 + i * 170, speed: 26 + seeded(i) * 32 });
+      const lane = [-8.2, -3.6, 3.6, 8.2][i % 4];
+      this.cars.push({
+        mesh,
+        body,
+        lane,
+        direction: lane < 0 ? -1 : 1,
+        offset: 180 + i * 170,
+        speed: 26 + seeded(i) * 32,
+      });
     }
   }
 
@@ -43,14 +51,15 @@ export class TrafficSystem {
         item.body.position.set(0, -1000, 0);
         continue;
       }
-      item.offset -= item.speed * dt;
-      if (item.offset < -100) item.offset += 2500 + seeded(i) * 500;
+      item.offset += item.direction * item.speed * dt;
+      if (item.direction > 0 && item.offset > 2500) item.offset = -180 - seeded(i) * 220;
+      if (item.direction < 0 && item.offset < -260) item.offset = 2400 + seeded(i) * 500;
       const z = player.position.z + item.offset;
       const p = roadPoint(z, item.lane + Math.sin(z * 0.02 + i) * 0.35);
       const tangent = roadTangent(z);
       item.mesh.position.copy(p);
       item.mesh.position.y += 0.48;
-      item.mesh.rotation.y = Math.atan2(tangent.x, tangent.z);
+      item.mesh.rotation.y = Math.atan2(tangent.x, tangent.z) + (item.direction < 0 ? Math.PI : 0);
       item.body.position.set(item.mesh.position.x, item.mesh.position.y, item.mesh.position.z);
       item.body.quaternion.setFromEuler(0, item.mesh.rotation.y, 0);
 

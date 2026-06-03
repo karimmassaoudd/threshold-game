@@ -152,6 +152,38 @@ export class GarageSystem {
 
     grp.add(body, hood, deck, cabin, roofPanel, splitter, diffuser);
 
+    // Professional body detailing: grille, vents, arches, mirrors, belt line.
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.26, 0.08), carbon);
+    grille.position.set(0, 0.58, -3.31);
+    grp.add(grille);
+
+    for (const side of [-1, 1]) {
+      const hoodVent = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.035, 0.84), carbon);
+      hoodVent.position.set(side * 0.58, 1.02, -2.55);
+      hoodVent.rotation.x = -0.06;
+      grp.add(hoodVent);
+
+      const sideIntake = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.9), carbon);
+      sideIntake.position.set(side * 1.48, 0.78, 0.6);
+      grp.add(sideIntake);
+
+      const mirrorArm = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.08), carbon);
+      mirrorArm.position.set(side * 1.32, 1.28, -0.94);
+      const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.28), carbon);
+      mirror.position.set(side * 1.7, 1.3, -1.0);
+      grp.add(mirrorArm, mirror);
+
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.065, 4.35), carbon);
+      belt.position.set(side * 1.47, 1.02, 0.04);
+      grp.add(belt);
+    }
+
+    const rearLightBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.08, 0.08), brakeMat);
+    rearLightBar.position.set(0, 0.88, 3.31);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.22, 0.06), new THREE.MeshBasicMaterial({ color: 0xf4f0d2 }));
+    plate.position.set(0, 0.58, 3.34);
+    grp.add(rearLightBar, plate);
+
     // ── Side skirts ──────────────────────────────────────────────────────────
     if (this.customization.bodyKit !== "Street") {
       for (const side of [-1, 1]) {
@@ -221,6 +253,10 @@ export class GarageSystem {
       const wGrp = new THREE.Group();
       wGrp.position.set(x, y, z);
 
+      const arch = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 1.24), carbon);
+      arch.position.set(x > 0 ? 0.02 : -0.02, 0.31, 0);
+      arch.scale.x = 1.1;
+
       const tyre = new THREE.Mesh(tyreGeo, tireMat);
       tyre.rotation.z = Math.PI / 2;
       tyre.castShadow = true;
@@ -235,7 +271,7 @@ export class GarageSystem {
       );
       caliper.position.set(x > 0 ? -0.28 : 0.28, 0, 0);
 
-      wGrp.add(tyre, rim, caliper);
+      wGrp.add(arch, tyre, rim, caliper);
       wGrp.userData.isFront = isFront;
       wheels.push(wGrp);
       grp.add(wGrp);

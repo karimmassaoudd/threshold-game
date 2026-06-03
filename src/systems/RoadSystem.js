@@ -3,15 +3,19 @@ import * as CANNON from "cannon-es";
 import { roadPoint, roadTangent, roadCenter, seeded } from "../utils/roadMath.js";
 
 // ── Materials ─────────────────────────────────────────────────────────────────
-const roadMat      = new THREE.MeshStandardMaterial({ color: 0x1a1e22, roughness: 0.82, metalness: 0.04 });
-const shoulderMat  = new THREE.MeshStandardMaterial({ color: 0x252d30, roughness: 0.90 });
-const rumbleMat    = new THREE.MeshStandardMaterial({ color: 0xcc2211, roughness: 0.75 }); // red rumble strip
-const rumbleMat2   = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.75 }); // white rumble
-const barrierMat   = new THREE.MeshStandardMaterial({ color: 0x55676e, roughness: 0.45, metalness: 0.28 });
-const barrierTop   = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.35 });
+const roadMat      = new THREE.MeshStandardMaterial({ color: 0x202327, roughness: 0.9, metalness: 0.02 });
+const shoulderMat  = new THREE.MeshStandardMaterial({ color: 0x42464a, roughness: 0.92 });
+const sidewalkMat  = new THREE.MeshStandardMaterial({ color: 0x6b6f72, roughness: 0.95 });
+const curbMat      = new THREE.MeshStandardMaterial({ color: 0xd6d1c7, roughness: 0.78 });
+const crosswalkMat = new THREE.MeshBasicMaterial({ color: 0xf2f2e8 });
+const sideRoadMat  = new THREE.MeshStandardMaterial({ color: 0x1c2024, roughness: 0.92, metalness: 0.01 });
+const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xffd629 });
+const signalRed    = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+const signalAmber  = new THREE.MeshBasicMaterial({ color: 0xffbb22 });
+const signalGreen  = new THREE.MeshBasicMaterial({ color: 0x28ff5f });
+const signalCase   = new THREE.MeshStandardMaterial({ color: 0x111417, roughness: 0.55, metalness: 0.35 });
 const centreDash   = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const laneDash     = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const neonMat      = new THREE.MeshBasicMaterial({ color: 0x33ddff });
 const terrainMat   = new THREE.MeshStandardMaterial({ color: 0x1a2e24, roughness: 0.96 });
 const mountainMat  = new THREE.MeshStandardMaterial({ color: 0x263a46, roughness: 0.92 });
 const buildingMat  = new THREE.MeshStandardMaterial({ color: 0x101820, roughness: 0.55, metalness: 0.18 });
@@ -25,7 +29,7 @@ const lampMat      = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 // Shared geometries (reused across all segments)
 const SEG_LEN  = 64;
 const ROAD_W   = 22; // wider road
-const SHOULDER = ROAD_W + 20;
+const SHOULDER = ROAD_W + 26;
 
 const roadGeo     = new THREE.PlaneGeometry(ROAD_W, SEG_LEN);
 roadGeo.rotateX(-Math.PI / 2);
@@ -79,30 +83,32 @@ export class RoadSystem {
 
       grp.add(shoulder, road);
 
-      // Rumble strips (alternating red/white at edges)
+      // Sidewalks and curbs: urban GTA-style street instead of race barriers.
       for (const side of [-1, 1]) {
-        const x = side * (ROAD_W / 2 - 0.6);
-        for (let k = 0; k < 8; k++) {
-          const col = k % 2 === 0 ? rumbleMat : rumbleMat2;
-          const strip = new THREE.Mesh(
-            new THREE.BoxGeometry(1.1, 0.04, SEG_LEN / 8 - 0.2),
-            col
-          );
-          strip.position.set(x, 0.02, -SEG_LEN / 2 + (k + 0.5) * (SEG_LEN / 8));
-          grp.add(strip);
-        }
+        const curbX = side * (ROAD_W / 2 + 0.18);
+        const walkX = side * (ROAD_W / 2 + 3.5);
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, SEG_LEN - 0.3), curbMat);
+        curb.position.set(curbX, 0.08, 0);
+        curb.receiveShadow = true;
+
+        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.12, SEG_LEN - 0.4), sidewalkMat);
+        sidewalk.position.set(walkX, 0.015, 0);
+        sidewalk.receiveShadow = true;
+
+        const gutter = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.018, SEG_LEN - 0.8), laneDash);
+        gutter.position.set(side * (ROAD_W / 2 - 0.55), 0.031, 0);
+        grp.add(sidewalk, curb, gutter);
       }
 
       // Dashed centre line (yellow)
-      const centreLineMat = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
-      for (let d = 0; d < 4; d++) {
-        const dash = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 7), centreLineMat);
-        dash.position.set(0, 0.025, -SEG_LEN / 2 + d * 16 + 4);
-        grp.add(dash);
+      for (const x of [-0.28, 0.28]) {
+        const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.026, SEG_LEN - 1.0), yellowLineMat);
+        line.position.set(x, 0.032, 0);
+        grp.add(line);
       }
 
       // Lane dividers (white dashes) — two lanes each side
-      for (const lx of [-ROAD_W / 6, ROAD_W / 6]) {
+      for (const lx of [-ROAD_W / 3, ROAD_W / 3]) {
         for (let d = 0; d < 4; d++) {
           const dash = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.025, 5), laneDash);
           dash.position.set(lx, 0.025, -SEG_LEN / 2 + d * 16 + 3);
@@ -110,34 +116,38 @@ export class RoadSystem {
         }
       }
 
-      // Jersey barriers
-      for (const side of [-1, 1]) {
-        const bx = side * (ROAD_W / 2 + 0.6);
+      for (const laneX of [-8.2, -3.6, 3.6, 8.2]) {
+        for (const z of [-18, 14]) {
+          const arrow = this._createLaneArrow(laneX > 0 ? 1 : -1);
+          arrow.position.set(laneX, 0.052, z);
+          grp.add(arrow);
+        }
+      }
 
-        // Main barrier body
-        const barrier = new THREE.Mesh(
-          new THREE.BoxGeometry(0.55, 0.88, SEG_LEN - 0.3),
-          barrierMat
-        );
-        barrier.position.set(bx, 0.44, 0);
-        barrier.castShadow = true;
-        barrier.receiveShadow = true;
+      // Intersections every few pooled segments: cross street, crosswalks, stop bars.
+      if (i % 2 === 0) {
+        const crossStreet = new THREE.Mesh(new THREE.BoxGeometry(SHOULDER + 34, 0.018, 16), sideRoadMat);
+        crossStreet.position.set(0, 0.012, 0);
+        crossStreet.receiveShadow = true;
+        grp.add(crossStreet);
 
-        // Barrier cap
-        const cap = new THREE.Mesh(
-          new THREE.BoxGeometry(0.4, 0.12, SEG_LEN - 0.3),
-          barrierTop
-        );
-        cap.position.set(bx, 0.94, 0);
+        for (const z of [-9.2, 9.2]) {
+          for (let stripe = -4; stripe <= 4; stripe += 1) {
+            const walkStripe = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.035, 5.4), crosswalkMat);
+            walkStripe.position.set(stripe * 1.3, 0.045, z);
+            grp.add(walkStripe);
+          }
+          const stopLine = new THREE.Mesh(new THREE.BoxGeometry(ROAD_W - 2.2, 0.035, 0.34), crosswalkMat);
+          stopLine.position.set(0, 0.047, z * 0.72);
+          grp.add(stopLine);
+        }
 
-        // Neon edge strip on barrier
-        const neon = new THREE.Mesh(
-          new THREE.BoxGeometry(0.07, 0.06, SEG_LEN - 2),
-          neonMat
-        );
-        neon.position.set(bx * 0.98, 1.05, 0);
-
-        grp.add(barrier, cap, neon);
+        for (const side of [-1, 1]) {
+          const signal = this._createTrafficLight(i);
+          signal.position.set(side * (ROAD_W / 2 + 4.4), 0, -8);
+          signal.rotation.y = side > 0 ? Math.PI : 0;
+          grp.add(signal);
+        }
       }
 
       // Street lamps are sparse in 240 FPS mode.
@@ -187,6 +197,55 @@ export class RoadSystem {
     return grp;
   }
 
+  _createTrafficLight(seed) {
+    const grp = new THREE.Group();
+
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.6, 8), poleMat);
+    pole.position.y = 2.3;
+    pole.castShadow = true;
+
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 0.12), poleMat);
+    arm.position.set(-0.95, 4.45, 0);
+
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.08, 0.28), signalCase);
+    box.position.set(-2.05, 4.2, 0);
+    box.castShadow = true;
+
+    const active = seed % 3;
+    const lights = [
+      [0.29, active === 0 ? signalRed : signalCase],
+      [0.0, active === 1 ? signalAmber : signalCase],
+      [-0.29, active === 2 ? signalGreen : signalCase],
+    ];
+    for (const [y, mat] of lights) {
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat);
+      lamp.position.set(-2.05, 4.2 + y, -0.16);
+      grp.add(lamp);
+    }
+
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.34, 0.05), crosswalkMat);
+    sign.position.set(0.42, 3.0, 0);
+    grp.add(pole, arm, box, sign);
+    return grp;
+  }
+
+  _createLaneArrow(direction = 1) {
+    const grp = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 2.2), laneDash);
+    shaft.position.z = -0.35;
+
+    const headA = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 1.25), laneDash);
+    const headB = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 1.25), laneDash);
+    headA.position.set(-0.36, 0, 0.84);
+    headB.position.set(0.36, 0, 0.84);
+    headA.rotation.y = -0.62;
+    headB.rotation.y = 0.62;
+
+    grp.add(shaft, headA, headB);
+    if (direction < 0) grp.rotation.y = Math.PI;
+    return grp;
+  }
+
   // ── Physics barriers ───────────────────────────────────────────────────────
   _createPhysicsBarriers() {
     this.leftBarrier  = new CANNON.Body({ mass: 0, material: this.physics.materials.barrier });
@@ -213,7 +272,7 @@ export class RoadSystem {
     }
 
     // Scenery (buildings + trees)
-    for (let i = 0; i < 56; i++) {
+    for (let i = 0; i < 72; i++) {
       const item = seeded(i) > 0.4 ? this._createBuilding(i) : this._createTree(i);
       this.root.add(item.object);
       this.scenery.push({ ...item, seed: i + 1000, lane: seeded(i + 120) > 0.5 ? 1 : -1 });
@@ -320,8 +379,8 @@ export class RoadSystem {
     }
 
     // Loop scenery and mountains
-    this._updateLoopedObjects(carZ, this.mountains, 5800, 1000, 240, 380);
-    this._updateLoopedObjects(carZ, this.scenery,   4400,  700,  40, 100);
+    this._updateLoopedObjects(carZ, this.mountains, 5800, 1000, 420, 460);
+    this._updateLoopedObjects(carZ, this.scenery,   3200,  620,  15, 42);
   }
 
   _updateLoopedObjects(carZ, objects, loop, behind, minSide, extraSide) {
