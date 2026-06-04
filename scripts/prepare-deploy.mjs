@@ -40,6 +40,9 @@ await writeFile(
     "",
     "Do not upload the project root index.html or src folder as the live website.",
     "",
+    "To test the same bundled files locally, run:",
+    "npm run serve:upload",
+    "",
   ].join("\n"),
 );
 
