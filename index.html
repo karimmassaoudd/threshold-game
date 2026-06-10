@@ -1,237 +1,242 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>APEX DRIVE – 4K Street Sprint Racing</title>
-    <meta name="description" content="Apex Drive – an adrenaline-fuelled street racing game with turbo, drift, and cinematic cameras." />
-    <link rel="icon" href="data:," />
-  </head>
-  <body>
-    <main id="app">
-      <canvas id="game"></canvas>
 
-      <!-- Speed lines overlay -->
-      <div id="speedLines" aria-hidden="true"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APEX DRIVE – 4K Street Sprint Racing</title>
+  <meta name="description"
+    content="Apex Drive – an adrenaline-fuelled street racing game with turbo, drift, and cinematic cameras." />
+  <link rel="icon" href="data:," />
+</head>
 
-      <section class="hud" aria-label="Driving HUD">
+<body>
+  <main id="app">
+    <canvas id="game"></canvas>
 
-        <!-- Top bar -->
-        <div class="topbar">
-          <div class="brand">
-            <strong>APEX</strong><span>DRIVE</span>
-          </div>
-          <div class="telemetry">
-            <span id="fps">-- FPS</span>
-            <span id="quality">ULTRA</span>
-            <span id="cameraMode">CHASE</span>
+    <!-- Speed lines overlay -->
+    <div id="speedLines" aria-hidden="true"></div>
+
+    <section class="hud" aria-label="Driving HUD">
+
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="brand">
+          <strong>APEX</strong><span>DRIVE</span>
+        </div>
+        <div class="telemetry">
+          <span id="fps">-- FPS</span>
+          <span id="quality">ULTRA</span>
+          <span id="cameraMode">CHASE</span>
+        </div>
+      </div>
+
+      <!-- Speedometer (bottom-right) -->
+      <div class="speedo">
+        <div class="speedo-inner">
+          <strong id="speed">000</strong>
+          <span class="unit">km/h</span>
+        </div>
+        <div class="rpm-bar"><i id="rpm"></i></div>
+        <div class="mini-hud">
+          <span class="gear-badge" id="gear">D</span>
+          <span class="turbo-badge" id="nitro">TURBO 100%</span>
+        </div>
+      </div>
+
+      <!-- Race info (bottom-left) -->
+      <div class="race-info">
+        <div class="ri-item">
+          <span>LAP</span>
+          <strong id="lap">1/3</strong>
+        </div>
+        <div class="ri-item">
+          <span>TIME</span>
+          <strong id="time">00.00</strong>
+        </div>
+        <div class="ri-item">
+          <span>DMG</span>
+          <strong id="damage">0%</strong>
+        </div>
+        <div class="progress-bar">
+          <span>ROUTE</span>
+          <em><i id="progressFill"></i></em>
+        </div>
+      </div>
+
+      <!-- Settings / Garage panel -->
+      <aside class="garage closed" id="garage">
+        <header>
+          <strong>⚙ Settings &amp; Garage</strong>
+          <button id="garageToggle" type="button">Show</button>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="graphics">Graphics</button>
+          <button class="tab" data-tab="sound">Sound</button>
+          <button class="tab" data-tab="car">Car</button>
+          <button class="tab" data-tab="controls">Controls</button>
+        </div>
+
+        <!-- Graphics tab -->
+        <div class="tab-pane active" id="tab-graphics">
+          <label>
+            Quality
+            <select id="qualitySelect">
+              <option value="Ultra">4K Ultra</option>
+              <option value="Balanced" selected>Balanced</option>
+              <option value="240 FPS">240 FPS</option>
+            </select>
+          </label>
+          <label>
+            Weather
+            <select id="weatherSelect">
+              <option value="Clear">☀ Clear</option>
+              <option value="Rain">🌧 Rain</option>
+              <option value="Storm">⛈ Storm</option>
+              <option value="Sunset">🌅 Sunset</option>
+            </select>
+          </label>
+          <label class="check">
+            <input id="shadowsToggle" type="checkbox" checked />
+            Shadows
+          </label>
+          <label class="check">
+            <input id="postToggle" type="checkbox" checked />
+            Post-processing &amp; Bloom
+          </label>
+        </div>
+
+        <!-- Sound tab -->
+        <div class="tab-pane" id="tab-sound">
+          <label>
+            Sound volume
+            <input id="soundVolume" type="range" min="0" max="1" step="0.01" />
+          </label>
+          <label>
+            Music volume
+            <input id="musicVolume" type="range" min="0" max="1" step="0.01" />
+          </label>
+        </div>
+
+        <!-- Car tab -->
+        <div class="tab-pane" id="tab-car">
+          <label>
+            Car
+            <select id="carSelect"></select>
+          </label>
+          <label>
+            Paint colour
+            <select id="paintSelect">
+              <option value="#10d9ff">Neon Cyan</option>
+              <option value="#ff2438">Inferno Red</option>
+              <option value="#050608">Carbon Black</option>
+              <option value="#f1f4ee">Pearl White</option>
+              <option value="#ffd447">Track Yellow</option>
+              <option value="#a020f0">Ultra Violet</option>
+              <option value="#00ff88">Acid Green</option>
+            </select>
+          </label>
+          <label>
+            Paint finish
+            <select id="paintFinishSelect">
+              <option value="metallic">Metallic</option>
+              <option value="matte">Matte</option>
+              <option value="chrome">Chrome</option>
+              <option value="pearl">Pearl</option>
+            </select>
+          </label>
+          <label>
+            Wheels
+            <select id="wheelSelect">
+              <option value="Sport">Sport</option>
+              <option value="Deep Dish">Deep Dish</option>
+            </select>
+          </label>
+          <label>
+            Body kit
+            <select id="bodyKitSelect">
+              <option value="Track">Track</option>
+              <option value="Street">Street</option>
+              <option value="Time Attack">Time Attack</option>
+            </select>
+          </label>
+          <label class="check">
+            <input id="spoilerToggle" type="checkbox" checked />
+            Spoiler
+          </label>
+          <label>
+            Window tint
+            <input id="tintRange" type="range" min="0" max="1" step="0.01" value="0.65" />
+          </label>
+          <label>
+            Engine upgrade
+            <input id="engineUpgrade" type="range" min="0.85" max="1.35" step="0.01" value="1" />
+          </label>
+          <label>
+            Grip upgrade
+            <input id="gripUpgrade" type="range" min="0.85" max="1.35" step="0.01" value="1" />
+          </label>
+        </div>
+
+        <!-- Controls tab -->
+        <div class="tab-pane" id="tab-controls">
+          <label>
+            Camera mode
+            <select id="cameraSelect">
+              <option value="Chase">Chase</option>
+              <option value="Cockpit">Cockpit</option>
+              <option value="Hood">Hood</option>
+              <option value="Cinematic">Cinematic</option>
+              <option value="Free">Free</option>
+            </select>
+          </label>
+          <label>
+            Camera sensitivity
+            <input id="cameraSensitivity" type="range" min="0.2" max="1.5" step="0.01" />
+          </label>
+          <label>
+            Traffic
+            <select id="trafficSelect">
+              <option value="Normal">Normal</option>
+              <option value="Heavy">Heavy</option>
+              <option value="Off">Off</option>
+            </select>
+          </label>
+          <label class="check">
+            <input id="assistToggle" type="checkbox" checked />
+            Stability assist
+          </label>
+          <div class="control-hint">
+            <p>W / ↑ &nbsp; Accelerate</p>
+            <p>S / ↓ &nbsp; Brake / Reverse</p>
+            <p>A / D &nbsp; Steer</p>
+            <p>SHIFT &nbsp; Turbo (hold)</p>
+            <p>SPACE &nbsp; Handbrake</p>
+            <p>C &nbsp; Camera mode</p>
+            <p>M &nbsp; Mute audio</p>
+            <p>R &nbsp; Reset</p>
+            <p>G &nbsp; Garage</p>
           </div>
         </div>
 
-        <!-- Speedometer (bottom-right) -->
-        <div class="speedo">
-          <div class="speedo-inner">
-            <strong id="speed">000</strong>
-            <span class="unit">km/h</span>
-          </div>
-          <div class="rpm-bar"><i id="rpm"></i></div>
-          <div class="mini-hud">
-            <span class="gear-badge" id="gear">D</span>
-            <span class="turbo-badge" id="nitro">TURBO 100%</span>
-          </div>
+        <button id="resetButton" type="button" class="btn-danger">↺ Reset Race</button>
+      </aside>
+
+      <!-- Initial prompt overlay -->
+      <div class="prompt" id="prompt">
+        <div class="prompt-inner">
+          <strong>APEX DRIVE</strong>
+          <p>Click anywhere to start</p>
+          <p class="prompt-sub">WASD / Arrows to drive &nbsp;·&nbsp; Shift for Turbo &nbsp;·&nbsp; Space handbrake
+            &nbsp;·&nbsp; C camera &nbsp;·&nbsp; G garage</p>
         </div>
+      </div>
 
-        <!-- Race info (bottom-left) -->
-        <div class="race-info">
-          <div class="ri-item">
-            <span>LAP</span>
-            <strong id="lap">1/3</strong>
-          </div>
-          <div class="ri-item">
-            <span>TIME</span>
-            <strong id="time">00.00</strong>
-          </div>
-          <div class="ri-item">
-            <span>DMG</span>
-            <strong id="damage">0%</strong>
-          </div>
-          <div class="progress-bar">
-            <span>ROUTE</span>
-            <em><i id="progressFill"></i></em>
-          </div>
-        </div>
+    </section>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
 
-        <!-- Settings / Garage panel -->
-        <aside class="garage closed" id="garage">
-          <header>
-            <strong>⚙ Settings &amp; Garage</strong>
-            <button id="garageToggle" type="button">Show</button>
-          </header>
-
-          <!-- Tabs -->
-          <div class="tabs">
-            <button class="tab active" data-tab="graphics">Graphics</button>
-            <button class="tab" data-tab="sound">Sound</button>
-            <button class="tab" data-tab="car">Car</button>
-            <button class="tab" data-tab="controls">Controls</button>
-          </div>
-
-          <!-- Graphics tab -->
-          <div class="tab-pane active" id="tab-graphics">
-            <label>
-              Quality
-              <select id="qualitySelect">
-                <option value="Ultra">4K Ultra</option>
-                <option value="Balanced" selected>Balanced</option>
-                <option value="240 FPS">240 FPS</option>
-              </select>
-            </label>
-            <label>
-              Weather
-              <select id="weatherSelect">
-                <option value="Clear">☀ Clear</option>
-                <option value="Rain">🌧 Rain</option>
-                <option value="Storm">⛈ Storm</option>
-                <option value="Sunset">🌅 Sunset</option>
-              </select>
-            </label>
-            <label class="check">
-              <input id="shadowsToggle" type="checkbox" checked />
-              Shadows
-            </label>
-            <label class="check">
-              <input id="postToggle" type="checkbox" checked />
-              Post-processing &amp; Bloom
-            </label>
-          </div>
-
-          <!-- Sound tab -->
-          <div class="tab-pane" id="tab-sound">
-            <label>
-              Sound volume
-              <input id="soundVolume" type="range" min="0" max="1" step="0.01" />
-            </label>
-            <label>
-              Music volume
-              <input id="musicVolume" type="range" min="0" max="1" step="0.01" />
-            </label>
-          </div>
-
-          <!-- Car tab -->
-          <div class="tab-pane" id="tab-car">
-            <label>
-              Car
-              <select id="carSelect"></select>
-            </label>
-            <label>
-              Paint colour
-              <select id="paintSelect">
-                <option value="#10d9ff">Neon Cyan</option>
-                <option value="#ff2438">Inferno Red</option>
-                <option value="#050608">Carbon Black</option>
-                <option value="#f1f4ee">Pearl White</option>
-                <option value="#ffd447">Track Yellow</option>
-                <option value="#a020f0">Ultra Violet</option>
-                <option value="#00ff88">Acid Green</option>
-              </select>
-            </label>
-            <label>
-              Paint finish
-              <select id="paintFinishSelect">
-                <option value="metallic">Metallic</option>
-                <option value="matte">Matte</option>
-                <option value="chrome">Chrome</option>
-                <option value="pearl">Pearl</option>
-              </select>
-            </label>
-            <label>
-              Wheels
-              <select id="wheelSelect">
-                <option value="Sport">Sport</option>
-                <option value="Deep Dish">Deep Dish</option>
-              </select>
-            </label>
-            <label>
-              Body kit
-              <select id="bodyKitSelect">
-                <option value="Track">Track</option>
-                <option value="Street">Street</option>
-                <option value="Time Attack">Time Attack</option>
-              </select>
-            </label>
-            <label class="check">
-              <input id="spoilerToggle" type="checkbox" checked />
-              Spoiler
-            </label>
-            <label>
-              Window tint
-              <input id="tintRange" type="range" min="0" max="1" step="0.01" value="0.65" />
-            </label>
-            <label>
-              Engine upgrade
-              <input id="engineUpgrade" type="range" min="0.85" max="1.35" step="0.01" value="1" />
-            </label>
-            <label>
-              Grip upgrade
-              <input id="gripUpgrade" type="range" min="0.85" max="1.35" step="0.01" value="1" />
-            </label>
-          </div>
-
-          <!-- Controls tab -->
-          <div class="tab-pane" id="tab-controls">
-            <label>
-              Camera mode
-              <select id="cameraSelect">
-                <option value="Chase">Chase</option>
-                <option value="Cockpit">Cockpit</option>
-                <option value="Hood">Hood</option>
-                <option value="Cinematic">Cinematic</option>
-                <option value="Free">Free</option>
-              </select>
-            </label>
-            <label>
-              Camera sensitivity
-              <input id="cameraSensitivity" type="range" min="0.2" max="1.5" step="0.01" />
-            </label>
-            <label>
-              Traffic
-              <select id="trafficSelect">
-                <option value="Normal">Normal</option>
-                <option value="Heavy">Heavy</option>
-                <option value="Off">Off</option>
-              </select>
-            </label>
-            <label class="check">
-              <input id="assistToggle" type="checkbox" checked />
-              Stability assist
-            </label>
-            <div class="control-hint">
-              <p>W / ↑ &nbsp; Accelerate</p>
-              <p>S / ↓ &nbsp; Brake / Reverse</p>
-              <p>A / D &nbsp; Steer</p>
-              <p>SHIFT &nbsp; Turbo (hold)</p>
-              <p>SPACE &nbsp; Handbrake</p>
-              <p>C &nbsp; Camera mode</p>
-              <p>M &nbsp; Mute audio</p>
-              <p>R &nbsp; Reset</p>
-              <p>G &nbsp; Garage</p>
-            </div>
-          </div>
-
-          <button id="resetButton" type="button" class="btn-danger">↺ Reset Race</button>
-        </aside>
-
-        <!-- Initial prompt overlay -->
-        <div class="prompt" id="prompt">
-          <div class="prompt-inner">
-            <strong>APEX DRIVE</strong>
-            <p>Click anywhere to start</p>
-            <p class="prompt-sub">WASD / Arrows to drive &nbsp;·&nbsp; Shift for Turbo &nbsp;·&nbsp; Space handbrake &nbsp;·&nbsp; C camera &nbsp;·&nbsp; G garage</p>
-          </div>
-        </div>
-
-      </section>
-    </main>
-    <script type="module" src="/src/main.js"></script>
-  </body>
 </html>
