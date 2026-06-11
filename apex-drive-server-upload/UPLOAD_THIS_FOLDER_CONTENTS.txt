@@ -1,8 +1,0 @@
-Upload the CONTENTS of this server-upload folder to your website root.
-
-Your server root should contain:
-- index.html
-- assets/
-- .htaccess
-
-Do not upload the project root index.html or src folder as the live website.

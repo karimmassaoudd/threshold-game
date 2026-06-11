@@ -36,6 +36,19 @@ dist/
 dist-ssr/
 *.local
 
+# Generated deploy bundles and archives
+server-upload/
+apex-drive-server-upload/
+*.zip
+
+# Local smoke-test and one-off debug artifacts
+*-smoke*.png
+threshold-cdp.png
+test_regex.js
+
+# Old nested project copy
+project_x-source/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
