@@ -114,6 +114,8 @@ export class GarageSystem {
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1, roughness: 0.04 });
     const underNeon = new THREE.MeshBasicMaterial({ color: 0x00ccff });
     const panelLineMat = new THREE.MeshBasicMaterial({ color: 0x050607 });
+    const glassFrameMat = new THREE.MeshStandardMaterial({ color: 0x030506, roughness: 0.38, metalness: 0.55 });
+    const brakeDiscMat = new THREE.MeshStandardMaterial({ color: 0x8b9299, roughness: 0.2, metalness: 0.9 });
     const roundedBox = (w, h, d, radius = 0.08, segments = 3) =>
       new RoundedBoxGeometry(w, h, d, segments, radius);
 
@@ -150,6 +152,20 @@ export class GarageSystem {
     roofPanel.position.set(0, 1.64, 0.18);
     roofPanel.userData.paint = true;
 
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.06, 0.82), paintMat);
+    windshield.position.set(0, 1.28, -0.82);
+    windshield.rotation.x = -0.58;
+    windshield.userData.glass = true;
+
+    const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.06, 0.74), paintMat);
+    rearWindow.position.set(0, 1.28, 1.12);
+    rearWindow.rotation.x = 0.52;
+    rearWindow.userData.glass = true;
+
+    const windshieldFrame = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.08, 0.92), glassFrameMat);
+    windshieldFrame.position.copy(windshield.position);
+    windshieldFrame.rotation.copy(windshield.rotation);
+
     // Front splitter
     const splitter = new THREE.Mesh(roundedBox(3.25, 0.08, 0.52, 0.04, 2), carbon);
     splitter.position.set(0, 0.33, -3.25);
@@ -158,7 +174,7 @@ export class GarageSystem {
     const diffuser = new THREE.Mesh(roundedBox(2.85, 0.22, 0.48, 0.04, 2), carbon);
     diffuser.position.set(0, 0.36, 3.26);
 
-    grp.add(body, lowerBody, hood, deck, cabin, roofPanel, splitter, diffuser);
+    grp.add(body, lowerBody, hood, deck, cabin, roofPanel, windshieldFrame, windshield, rearWindow, splitter, diffuser);
 
     // Professional body detailing: grille, vents, arches, mirrors, belt line.
     const grille = new THREE.Mesh(roundedBox(1.62, 0.28, 0.08, 0.03, 2), carbon);
@@ -199,6 +215,14 @@ export class GarageSystem {
       sideWindow.position.set(side * 1.06, 1.33, 0.08);
       sideWindow.userData.glass = true;
       grp.add(sideWindow);
+
+      const doorCut = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.72, 1.26), panelLineMat);
+      doorCut.position.set(side * 1.515, 0.9, -0.08);
+      grp.add(doorCut);
+
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.08, 0.36), chromeMat);
+      handle.position.set(side * 1.545, 0.96, -0.36);
+      grp.add(handle);
 
       for (const z of [-2.05, 1.92]) {
         const fender = new THREE.Mesh(roundedBox(0.16, 0.22, 1.28, 0.06, 3), paintMat);
@@ -294,6 +318,9 @@ export class GarageSystem {
       const rim = new THREE.Mesh(rimGeo, rimMat);
       rim.rotation.z = Math.PI / 2;
 
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(rimR * 0.78, rimR * 0.78, 0.05, 24), brakeDiscMat);
+      disc.rotation.z = Math.PI / 2;
+
       // Brake caliper
       const caliper = new THREE.Mesh(
         new THREE.BoxGeometry(0.18, 0.22, 0.48),
@@ -301,7 +328,14 @@ export class GarageSystem {
       );
       caliper.position.set(x > 0 ? -0.28 : 0.28, 0, 0);
 
-      wGrp.add(arch, tyre, rim, caliper);
+      for (let spoke = 0; spoke < 6; spoke++) {
+        const rimSpoke = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.055, rimR * 1.25), chromeMat);
+        rimSpoke.rotation.y = (Math.PI / 6) + spoke * (Math.PI / 3);
+        rimSpoke.position.x = x > 0 ? 0.22 : -0.22;
+        wGrp.add(rimSpoke);
+      }
+
+      wGrp.add(arch, tyre, disc, rim, caliper);
       wGrp.userData.isFront = isFront;
       wheels.push(wGrp);
       grp.add(wGrp);

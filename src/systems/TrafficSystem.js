@@ -21,6 +21,8 @@ const rimMat = new THREE.MeshStandardMaterial({ color: 0xb8c0c8, roughness: 0.18
 const trimMat = new THREE.MeshStandardMaterial({ color: 0x08090a, roughness: 0.45, metalness: 0.45 });
 const headlightMat = new THREE.MeshBasicMaterial({ color: 0xeaf8ff });
 const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff1836 });
+const LEFT_SIDE_LANES = [-8.2, -3.6];
+const RIGHT_SIDE_LANES = [3.6, 8.2];
 
 export class TrafficSystem {
   constructor(scene, physics) {
@@ -33,12 +35,15 @@ export class TrafficSystem {
       const body = new CANNON.Body({ mass: 0, material: physics.materials.barrier });
       body.addShape(new CANNON.Box(new CANNON.Vec3(1.05, 0.45, 2.15)));
       physics.addBody(body);
-      const lane = [-8.2, -3.6, 3.6, 8.2][i % 4];
+      const useLeftSide = i % 4 !== 3;
+      const lane = useLeftSide
+        ? LEFT_SIDE_LANES[i % LEFT_SIDE_LANES.length]
+        : RIGHT_SIDE_LANES[i % RIGHT_SIDE_LANES.length];
       this.cars.push({
         mesh,
         body,
         lane,
-        direction: lane < 0 ? -1 : 1,
+        direction: useLeftSide ? -1 : 1,
         offset: 55 + i * 75 + seeded(i + 44) * 45,
         speed: 20 + seeded(i) * 26,
         weave: seeded(i + 300) * Math.PI * 2,
