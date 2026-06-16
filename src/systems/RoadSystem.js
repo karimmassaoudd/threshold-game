@@ -7,13 +7,7 @@ const roadMat      = new THREE.MeshStandardMaterial({ color: 0x202327, roughness
 const shoulderMat  = new THREE.MeshStandardMaterial({ color: 0x42464a, roughness: 0.92 });
 const sidewalkMat  = new THREE.MeshStandardMaterial({ color: 0x6b6f72, roughness: 0.95 });
 const curbMat      = new THREE.MeshStandardMaterial({ color: 0xd6d1c7, roughness: 0.78 });
-const crosswalkMat = new THREE.MeshBasicMaterial({ color: 0xf2f2e8 });
-const sideRoadMat  = new THREE.MeshStandardMaterial({ color: 0x1c2024, roughness: 0.92, metalness: 0.01 });
 const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xffd629 });
-const signalRed    = new THREE.MeshBasicMaterial({ color: 0xff2222 });
-const signalAmber  = new THREE.MeshBasicMaterial({ color: 0xffbb22 });
-const signalGreen  = new THREE.MeshBasicMaterial({ color: 0x28ff5f });
-const signalCase   = new THREE.MeshStandardMaterial({ color: 0x111417, roughness: 0.55, metalness: 0.35 });
 const centreDash   = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const laneDash     = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const terrainMat   = new THREE.MeshStandardMaterial({ color: 0x1a2e24, roughness: 0.96 });
@@ -28,13 +22,12 @@ const lampMat      = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
 // Shared geometries (reused across all segments)
 const SEG_LEN  = 64;
+const SEG_OVERLAP = 8;
+const SEG_VIS_LEN = SEG_LEN + SEG_OVERLAP;
+const SEG_COUNT = 24;
+const RIBBON_STEPS = SEG_COUNT * 4;
 const ROAD_W   = 22; // wider road
 const SHOULDER = ROAD_W + 26;
-
-const roadGeo     = new THREE.PlaneGeometry(ROAD_W, SEG_LEN);
-roadGeo.rotateX(-Math.PI / 2);
-const shoulderGeo = new THREE.PlaneGeometry(SHOULDER, SEG_LEN);
-shoulderGeo.rotateX(-Math.PI / 2);
 
 export class RoadSystem {
   constructor(scene, physics) {
@@ -49,9 +42,11 @@ export class RoadSystem {
     this.streetLamps = [];
     scene.add(this.root);
     this._createTerrain();
+    this._createRoadRibbon();
     this._createSegments();
     this._createPhysicsBarriers();
     this._createEnvironment();
+    this._updateRoadRibbon(-this.segmentLength * 2);
   }
 
   // ── Terrain ────────────────────────────────────────────────────────────────
@@ -67,42 +62,101 @@ export class RoadSystem {
   }
 
   // ── Road segments (pool) ───────────────────────────────────────────────────
-  _createSegments() {
-    const SEG_COUNT = 24;
+  _createRoadRibbon() {
+    this.ribbonStrips = [
+      { mesh: this._createRibbonMesh(shoulderMat), center: 0, width: SHOULDER, y: -0.055 },
+      { mesh: this._createRibbonMesh(roadMat), center: 0, width: ROAD_W, y: 0.006 },
+    ];
 
+    for (const side of [-1, 1]) {
+      this.ribbonStrips.push(
+        { mesh: this._createRibbonMesh(sidewalkMat), center: side * (ROAD_W / 2 + 3.5), width: 6.3, y: 0.075 },
+        { mesh: this._createRibbonMesh(curbMat), center: side * (ROAD_W / 2 + 0.18), width: 0.36, y: 0.17 },
+        { mesh: this._createRibbonMesh(laneDash), center: side * (ROAD_W / 2 - 0.55), width: 0.42, y: 0.035 }
+      );
+    }
+
+    for (const center of [-0.28, 0.28]) {
+      this.ribbonStrips.push({ mesh: this._createRibbonMesh(yellowLineMat), center, width: 0.12, y: 0.04 });
+    }
+
+    for (const strip of this.ribbonStrips) {
+      this.root.add(strip.mesh);
+    }
+  }
+
+  _createRibbonMesh(material) {
+    const positions = new Float32Array((RIBBON_STEPS + 1) * 2 * 3);
+    const indices = [];
+
+    for (let i = 0; i < RIBBON_STEPS; i++) {
+      const a = i * 2;
+      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
+    geometry.setIndex(indices);
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  _updateRoadRibbon(startZ) {
+    for (const strip of this.ribbonStrips) {
+      this._writeRibbonGeometry(strip.mesh.geometry, startZ, strip.center, strip.width, strip.y);
+    }
+  }
+
+  _writeRibbonGeometry(geometry, startZ, centerLateral, width, yOffset) {
+    const positions = geometry.attributes.position.array;
+    const halfWidth = width / 2;
+    const totalLength = SEG_COUNT * this.segmentLength;
+
+    for (let i = 0; i <= RIBBON_STEPS; i++) {
+      const z = startZ + (i / RIBBON_STEPS) * totalLength;
+      const left = roadPoint(z, centerLateral - halfWidth);
+      const right = roadPoint(z, centerLateral + halfWidth);
+      const offset = i * 6;
+
+      positions[offset] = left.x;
+      positions[offset + 1] = left.y + yOffset;
+      positions[offset + 2] = left.z;
+      positions[offset + 3] = right.x;
+      positions[offset + 4] = right.y + yOffset;
+      positions[offset + 5] = right.z;
+    }
+
+    geometry.attributes.position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+  }
+
+  _createSegments() {
     for (let i = 0; i < SEG_COUNT; i++) {
       const grp = new THREE.Group();
-
-      // Asphalt
-      const shoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
-      shoulder.position.y = -0.05;
-      shoulder.receiveShadow = true;
-
-      const road = new THREE.Mesh(roadGeo, roadMat);
-      road.receiveShadow = true;
-
-      grp.add(shoulder, road);
 
       // Sidewalks and curbs: urban GTA-style street instead of race barriers.
       for (const side of [-1, 1]) {
         const curbX = side * (ROAD_W / 2 + 0.18);
         const walkX = side * (ROAD_W / 2 + 3.5);
-        const curb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, SEG_LEN - 0.3), curbMat);
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, SEG_VIS_LEN), curbMat);
         curb.position.set(curbX, 0.08, 0);
         curb.receiveShadow = true;
 
-        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.12, SEG_LEN - 0.4), sidewalkMat);
+        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.12, SEG_VIS_LEN), sidewalkMat);
         sidewalk.position.set(walkX, 0.015, 0);
         sidewalk.receiveShadow = true;
 
-        const gutter = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.018, SEG_LEN - 0.8), laneDash);
+        const gutter = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.018, SEG_VIS_LEN), laneDash);
         gutter.position.set(side * (ROAD_W / 2 - 0.55), 0.031, 0);
         grp.add(sidewalk, curb, gutter);
       }
 
       // Dashed centre line (yellow)
       for (const x of [-0.28, 0.28]) {
-        const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.026, SEG_LEN - 1.0), yellowLineMat);
+        const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.026, SEG_VIS_LEN), yellowLineMat);
         line.position.set(x, 0.032, 0);
         grp.add(line);
       }
@@ -121,38 +175,6 @@ export class RoadSystem {
           const arrow = this._createLaneArrow(laneX > 0 ? 1 : -1);
           arrow.position.set(laneX, 0.052, z);
           grp.add(arrow);
-        }
-      }
-
-      // Intersections every few pooled segments: cross street, crosswalks, stop bars.
-      if (i % 2 === 0) {
-        const crossStreetWidth = SHOULDER + 34;
-        const throughRoadClearance = ROAD_W + 2;
-        const sideStreetWidth = (crossStreetWidth - throughRoadClearance) / 2;
-
-        for (const side of [-1, 1]) {
-          const crossStreet = new THREE.Mesh(new THREE.BoxGeometry(sideStreetWidth, 0.018, 16), sideRoadMat);
-          crossStreet.position.set(side * (throughRoadClearance / 2 + sideStreetWidth / 2), 0.012, 0);
-          crossStreet.receiveShadow = true;
-          grp.add(crossStreet);
-        }
-
-        for (const z of [-9.2, 9.2]) {
-          for (let stripe = -4; stripe <= 4; stripe += 1) {
-            const walkStripe = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.035, 5.4), crosswalkMat);
-            walkStripe.position.set(stripe * 1.3, 0.045, z);
-            grp.add(walkStripe);
-          }
-          const stopLine = new THREE.Mesh(new THREE.BoxGeometry(ROAD_W - 2.2, 0.035, 0.34), crosswalkMat);
-          stopLine.position.set(0, 0.047, z * 0.72);
-          grp.add(stopLine);
-        }
-
-        for (const side of [-1, 1]) {
-          const signal = this._createTrafficLight(i);
-          signal.position.set(side * (ROAD_W / 2 + 4.4), 0, -8);
-          signal.rotation.y = side > 0 ? Math.PI : 0;
-          grp.add(signal);
         }
       }
 
@@ -200,38 +222,6 @@ export class RoadSystem {
     head.position.set(2.5, 7.35, 0);
 
     grp.add(pole, arm, head);
-    return grp;
-  }
-
-  _createTrafficLight(seed) {
-    const grp = new THREE.Group();
-
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.6, 8), poleMat);
-    pole.position.y = 2.3;
-    pole.castShadow = true;
-
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 0.12), poleMat);
-    arm.position.set(-0.95, 4.45, 0);
-
-    const box = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.08, 0.28), signalCase);
-    box.position.set(-2.05, 4.2, 0);
-    box.castShadow = true;
-
-    const active = seed % 3;
-    const lights = [
-      [0.29, active === 0 ? signalRed : signalCase],
-      [0.0, active === 1 ? signalAmber : signalCase],
-      [-0.29, active === 2 ? signalGreen : signalCase],
-    ];
-    for (const [y, mat] of lights) {
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat);
-      lamp.position.set(-2.05, 4.2 + y, -0.16);
-      grp.add(lamp);
-    }
-
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.34, 0.05), crosswalkMat);
-    sign.position.set(0.42, 3.0, 0);
-    grp.add(pole, arm, box, sign);
     return grp;
   }
 
@@ -367,6 +357,7 @@ export class RoadSystem {
     // Place segments so they span from 2 segments behind to far ahead
     // This ensures there is ALWAYS road in front of the player
     const startZ = Math.floor((carZ - this.segmentLength * 2) / this.segmentLength) * this.segmentLength;
+    this._updateRoadRibbon(startZ);
 
     for (let i = 0; i < this.segments.length; i++) {
       const z = startZ + i * this.segmentLength;
