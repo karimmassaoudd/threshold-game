@@ -126,10 +126,16 @@ export class RoadSystem {
 
       // Intersections every few pooled segments: cross street, crosswalks, stop bars.
       if (i % 2 === 0) {
-        const crossStreet = new THREE.Mesh(new THREE.BoxGeometry(SHOULDER + 34, 0.018, 16), sideRoadMat);
-        crossStreet.position.set(0, 0.012, 0);
-        crossStreet.receiveShadow = true;
-        grp.add(crossStreet);
+        const crossStreetWidth = SHOULDER + 34;
+        const throughRoadClearance = ROAD_W + 2;
+        const sideStreetWidth = (crossStreetWidth - throughRoadClearance) / 2;
+
+        for (const side of [-1, 1]) {
+          const crossStreet = new THREE.Mesh(new THREE.BoxGeometry(sideStreetWidth, 0.018, 16), sideRoadMat);
+          crossStreet.position.set(side * (throughRoadClearance / 2 + sideStreetWidth / 2), 0.012, 0);
+          crossStreet.receiveShadow = true;
+          grp.add(crossStreet);
+        }
 
         for (const z of [-9.2, 9.2]) {
           for (let stripe = -4; stripe <= 4; stripe += 1) {
