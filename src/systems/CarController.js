@@ -20,6 +20,7 @@ export class CarController {
     this.speed    = 0;   // m/s
     this.steer    = 0;   // -1 to +1
     this.lateral  = 0;   // lateral offset on road
+    this.lateralSpeed = 0; // side movement across the road
     this.progress = 0;   // distance along road
     this.yaw      = 0;   // world rotation Y
     this.rpm      = 0;   // 0-1 for HUD
@@ -53,6 +54,7 @@ export class CarController {
   setPosition(position, speed = 0) {
     this.progress = position.z;
     this.lateral  = 0;
+    this.lateralSpeed = 0;
     this.speed    = speed;
     this.syncToRoad();
   }
@@ -61,6 +63,7 @@ export class CarController {
     this.speed    = 0;
     this.steer    = 0;
     this.lateral  = 0;
+    this.lateralSpeed = 0;
     this.progress = 0;
     this.yaw      = 0;
     this.turbo    = 100;
@@ -84,30 +87,31 @@ export class CarController {
     const turboKey   = input.has("ShiftLeft") || input.has("ShiftRight");
 
     const maxSpeedMs = this.stats.maxSpeed / 3.6; // km/h → m/s
-    const turboMaxMs = 240 / 3.6;
+    const turboMaxMs = 450 / 3.6;
 
     // ── Turbo ─────────────────────────────────────────────────────────────────
     const turboCanRun = turboKey && throttle && this.turbo > 0;
     this.turboActive  = turboCanRun;
-    if (turboCanRun)  this.turbo = Math.max(0, this.turbo - 28 * dt);
-    else              this.turbo = Math.min(100, this.turbo + 8 * dt);
+    if (turboCanRun)  this.turbo = Math.max(0, this.turbo - 18 * dt);
+    else              this.turbo = Math.min(100, this.turbo + 14 * dt);
 
     const speedCap = turboCanRun ? turboMaxMs : maxSpeedMs;
 
     // ── Torque curve — high pull at low speed, tapers near max ───────────────
     const healthFactor = 1 - this.damage * 0.003;
-    const turboBoost   = turboCanRun ? 1.85 : 1.0;
+    const turboBoost   = turboCanRun ? 3.15 : 1.0;
     const speedRatio   = Math.abs(this.speed) / speedCap;
     // Torque curve: strong 0→40% speed, then tapers
-    const torqueCurve  = Math.max(0.08, 1 - speedRatio * 0.82);
-    const accel        = (this.stats.power / this.stats.mass) * turboBoost * torqueCurve * healthFactor;
+    const torqueCurve  = Math.max(0.14, 1 - speedRatio * 0.76);
+    const turboSurge   = turboCanRun ? 15 * Math.max(0.35, 1 - speedRatio * 0.55) : 0;
+    const accel        = (this.stats.power / this.stats.mass) * turboBoost * torqueCurve * healthFactor + turboSurge;
 
     if (throttle && this.speed < speedCap) {
       this.speed += accel * dt;
     }
 
     // Natural drag (aerodynamic) — speed² makes it feel real
-    const drag = 0.0028 * this.speed * Math.abs(this.speed);
+    const drag = 0.000085 * this.speed * Math.abs(this.speed);
     this.speed -= drag * dt;
 
     // Engine braking when off throttle
@@ -129,7 +133,7 @@ export class CarController {
 
     // Handbrake — rapid speed bleed + kill lateral stability
     if (handbrake) {
-      this.speed *= Math.pow(0.72, dt);
+      this.speed *= Math.pow(0.62, dt);
     }
 
     // Clamp speed
@@ -150,7 +154,7 @@ export class CarController {
       (this.drifting && throttle && Math.abs(this.steer) > 0.16)
     );
     const driftTarget = wantsDrift
-      ? THREE.MathUtils.clamp(this.steer * (handbrake ? 1.28 : 0.82) * Math.min(1.35, absSpeedKmh / 72), -1, 1)
+      ? THREE.MathUtils.clamp(this.steer * (handbrake ? 1.65 : 0.82) * Math.min(1.45, absSpeedKmh / 72), -1, 1)
       : 0;
     const driftResponse = wantsDrift ? 1 - Math.pow(0.00002, dt) : 1 - Math.pow(0.015, dt);
     this.driftAmount = THREE.MathUtils.lerp(this.driftAmount, driftTarget, driftResponse);
@@ -158,14 +162,22 @@ export class CarController {
     this.drifting = this.slip > 0.08;
     const driftMul = this.drifting ? 3.15 : 1.0;
 
-    this.lateral += this.steer * this.stats.steering * this.speed * 0.065 * turnRate * driftMul * dt;
-    this.lateral += this.driftAmount * Math.abs(this.speed) * 0.105 * dt;
+    const laneChangeSpeed = THREE.MathUtils.clamp(absSpeedKmh / 42, 0.35, 2.15) * this.stats.steering * (4.8 + turnRate);
+    const targetLateralSpeed = this.steer * laneChangeSpeed * (this.drifting ? 1.25 : 1.0);
+    const lateralResponse = this.drifting ? 1 - Math.pow(0.0015, dt) : 1 - Math.pow(0.00008, dt);
+    this.lateralSpeed = THREE.MathUtils.lerp(this.lateralSpeed, targetLateralSpeed, lateralResponse);
+    this.lateralSpeed += this.driftAmount * Math.abs(this.speed) * 0.32 * dt;
+    if (handbrake && Math.abs(this.steer) > 0.05) {
+      this.lateralSpeed += this.steer * Math.min(10, Math.abs(this.speed) * 0.16) * dt;
+    }
+    this.lateralSpeed *= Math.pow(this.drifting ? 0.985 : 0.94, dt * 60);
+    this.lateral += this.lateralSpeed * driftMul * dt;
     if (handbrake) {
       this.cameraShake = Math.max(this.cameraShake, 0.08 + this.slip * 0.12);
     }
 
     // Stability assist — lateral grip restores centre
-    if (settings.stabilityAssist) {
+    if (settings.stabilityAssist && Math.abs(this.steer) < 0.05) {
       const assistGrip = this.drifting ? 0.22 : 1.0;
       this.lateral *= 1 - Math.min(0.88, dt * 0.7 * grip * assistGrip);
     }
@@ -174,6 +186,7 @@ export class CarController {
     const wallLimit = 8.5;
     if (Math.abs(this.lateral) > wallLimit) {
       this.lateral = THREE.MathUtils.clamp(this.lateral, -wallLimit, wallLimit);
+      this.lateralSpeed *= -0.25;
       const impact = Math.abs(this.speed * 0.4);
       this.speed  *= 0.55;
       this.damage  = Math.min(100, this.damage + 9 * dt);
@@ -211,10 +224,11 @@ export class CarController {
     const tangent = roadTangent(this.progress);
     const curveYaw = Math.atan2(tangent.x, tangent.z);
 
-    // Drift yaw: rear swings out
-    const steeringYaw = -this.steer * Math.min(0.38, Math.abs(this.speed) / 140);
+    // Point the car toward its actual travel direction, including lane changes.
+    const movementYaw = Math.atan2(this.lateralSpeed, Math.max(2, Math.abs(this.speed)));
+    const steeringYaw = -movementYaw * 0.82;
     const driftYaw = -this.driftAmount * 0.82;
-    this.yaw = THREE.MathUtils.lerp(this.yaw, curveYaw + steeringYaw + driftYaw, this.drifting ? 0.28 : 0.18);
+    this.yaw = THREE.MathUtils.lerp(this.yaw, curveYaw + steeringYaw + driftYaw, this.drifting ? 0.28 : 0.22);
 
     this.position.copy(road);
     this.position.y += 0.58; // ride height
@@ -239,7 +253,7 @@ export class CarController {
       wheel.rotation.x -= spinRate * 0.017; // continuous spin
       // Front wheels steer
       if (wheel.userData.isFront) {
-        wheel.rotation.y = -this.steer * 0.42;
+        wheel.rotation.y = this.steer * 0.42;
       }
     }
 

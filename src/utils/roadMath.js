@@ -4,12 +4,12 @@ export function seeded(i) {
   return Math.sin(i * 917.23) * 0.5 + 0.5;
 }
 
-export function roadCenter(z) {
-  return Math.sin(z * 0.0014) * 24 + Math.sin(z * 0.0041 + 1.7) * 7 + Math.sin(z * 0.00043 + 4) * 42;
+export function roadCenter() {
+  return 0;
 }
 
-export function roadHeight(z) {
-  return Math.sin(z * 0.002) * 3 + Math.sin(z * 0.0007) * 10;
+export function roadHeight() {
+  return 0;
 }
 
 export function roadTangent(z) {

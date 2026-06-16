@@ -5,11 +5,11 @@ export const CAR_PRESETS = [
     modelUrl: null,
     color: "#10d9ff",
     mass: 1220,
-    power: 11800,
+    power: 18200,
     brake: 58,
     grip: 1.08,
     steering: 1.1,
-    maxSpeed: 240,
+    maxSpeed: 450,
   },
   {
     id: "vortex",
@@ -17,11 +17,11 @@ export const CAR_PRESETS = [
     modelUrl: null,
     color: "#ff2438",
     mass: 1380,
-    power: 13200,
+    power: 19600,
     brake: 62,
     grip: 0.98,
     steering: 0.98,
-    maxSpeed: 252,
+    maxSpeed: 450,
   },
   {
     id: "titan",
@@ -29,11 +29,11 @@ export const CAR_PRESETS = [
     modelUrl: null,
     color: "#f1f4ee",
     mass: 1560,
-    power: 14500,
+    power: 21000,
     brake: 66,
     grip: 0.92,
     steering: 0.86,
-    maxSpeed: 235,
+    maxSpeed: 450,
   },
 ];
 
@@ -47,7 +47,7 @@ export const DEFAULT_SETTINGS = {
   postProcessing: false,
   weather: "Clear",
   cameraMode: "Chase",
-  traffic: "Off",
+  traffic: "Normal",
   stabilityAssist: true,
 };
 

@@ -19,6 +19,12 @@ const treeMat      = new THREE.MeshStandardMaterial({ color: 0x0d3525, roughness
 const trunkMat     = new THREE.MeshStandardMaterial({ color: 0x3c2b1d, roughness: 0.85 });
 const poleMat      = new THREE.MeshStandardMaterial({ color: 0x5a6a70, roughness: 0.5, metalness: 0.4 });
 const lampMat      = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+const cafeMat      = new THREE.MeshStandardMaterial({ color: 0x334a57, roughness: 0.72, metalness: 0.08 });
+const restaurantMat = new THREE.MeshStandardMaterial({ color: 0x4d3234, roughness: 0.76, metalness: 0.06 });
+const hotelMat     = new THREE.MeshStandardMaterial({ color: 0x263848, roughness: 0.64, metalness: 0.16 });
+const shopMat      = new THREE.MeshStandardMaterial({ color: 0x3f4248, roughness: 0.72, metalness: 0.08 });
+const awningRed    = new THREE.MeshBasicMaterial({ color: 0xc62834 });
+const awningCream  = new THREE.MeshBasicMaterial({ color: 0xf4e7c8 });
 
 // Shared geometries (reused across all segments)
 const SEG_LEN  = 64;
@@ -267,11 +273,39 @@ export class RoadSystem {
       this.mountains.push({ object: peak, seed: i + 3000, lane: seeded(i + 99) > 0.5 ? 1 : -1, mountain: true });
     }
 
-    // Scenery (buildings + trees)
-    for (let i = 0; i < 72; i++) {
-      const item = seeded(i) > 0.4 ? this._createBuilding(i) : this._createTree(i);
+    // Trees on both sides, with small spacing variation so the road feels alive.
+    for (let i = 0; i < 90; i++) {
+      for (const side of [-1, 1]) {
+        const item = this._createTree(i + (side > 0 ? 400 : 0));
+        this.root.add(item.object);
+        this.scenery.push({
+          ...item,
+          seed: i + 1000 + (side > 0 ? 500 : 0),
+          lane: side,
+          minSide: 22,
+          extraSide: 34,
+        });
+      }
+    }
+
+    // Roadside venues and city buildings on both sides.
+    for (let i = 0; i < 84; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const roll = seeded(i + 31);
+      const item =
+        roll < 0.18 ? this._createCafe(i) :
+        roll < 0.36 ? this._createRestaurant(i) :
+        roll < 0.52 ? this._createHotel(i) :
+        this._createBuilding(i);
+
       this.root.add(item.object);
-      this.scenery.push({ ...item, seed: i + 1000, lane: seeded(i + 120) > 0.5 ? 1 : -1 });
+      this.scenery.push({
+        ...item,
+        seed: i + 2400,
+        lane: side,
+        minSide: item.type === "building" || item.type === "hotel" ? 34 : 28,
+        extraSide: item.type === "building" || item.type === "hotel" ? 34 : 22,
+      });
     }
   }
 
@@ -317,6 +351,140 @@ export class RoadSystem {
     grp.add(antenna);
 
     return { object: grp, type: "building" };
+  }
+
+  _createCafe(i) {
+    return this._createVenue(i, {
+      label: "CAFE",
+      material: cafeMat,
+      signColor: "#1aa7b8",
+      height: 6 + seeded(i + 11) * 3,
+      width: 12 + seeded(i + 12) * 6,
+      depth: 9 + seeded(i + 13) * 4,
+      patio: true,
+    });
+  }
+
+  _createRestaurant(i) {
+    return this._createVenue(i, {
+      label: seeded(i + 4) > 0.5 ? "DINER" : "GRILL",
+      material: restaurantMat,
+      signColor: "#d94835",
+      height: 7 + seeded(i + 21) * 4,
+      width: 14 + seeded(i + 22) * 8,
+      depth: 10 + seeded(i + 23) * 5,
+      patio: true,
+    });
+  }
+
+  _createHotel(i) {
+    const grp = this._createVenue(i, {
+      label: "HOTEL",
+      material: hotelMat,
+      signColor: "#315eb8",
+      height: 24 + seeded(i + 31) * 34,
+      width: 12 + seeded(i + 32) * 10,
+      depth: 11 + seeded(i + 33) * 8,
+      patio: false,
+    }).object;
+
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4, 5), poleMat);
+    antenna.position.y = 28 + seeded(i + 31) * 34;
+    grp.add(antenna);
+    return { object: grp, type: "hotel" };
+  }
+
+  _createVenue(i, options) {
+    const grp = new THREE.Group();
+    const h = options.height;
+    const w = options.width;
+    const d = options.depth;
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), options.material);
+    base.position.y = h / 2;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    grp.add(base);
+
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.8, 0.35, d + 0.8), buildingMat);
+    roof.position.y = h + 0.2;
+    grp.add(roof);
+
+    const sign = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.min(w * 0.78, 9), 1.45, 0.12),
+      this._createSignMaterial(options.label, options.signColor)
+    );
+    sign.position.set(0, Math.min(h - 1.1, 4.2), -d / 2 - 0.12);
+    grp.add(sign);
+
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.5, 0.08), windowMat);
+    door.position.set(0, 1.25, -d / 2 - 0.08);
+    grp.add(door);
+
+    for (const side of [-1, 1]) {
+      const frontWindow = new THREE.Mesh(new THREE.BoxGeometry(w * 0.24, 1.7, 0.08), windowWarm);
+      frontWindow.position.set(side * w * 0.28, 2.1, -d / 2 - 0.09);
+      grp.add(frontWindow);
+    }
+
+    const stripeCount = 5;
+    for (let stripe = 0; stripe < stripeCount; stripe++) {
+      const mat = stripe % 2 === 0 ? awningRed : awningCream;
+      const awning = new THREE.Mesh(new THREE.BoxGeometry(w / stripeCount, 0.16, 1.15), mat);
+      awning.position.set(-w / 2 + (stripe + 0.5) * (w / stripeCount), 3.05, -d / 2 - 0.55);
+      awning.rotation.x = -0.16;
+      grp.add(awning);
+    }
+
+    const rows = Math.max(0, Math.floor((h - 7) / 4));
+    for (let row = 0; row < rows; row++) {
+      for (const x of [-0.3, 0.3]) {
+        const win = new THREE.Mesh(new THREE.BoxGeometry(w * 0.22, 0.75, 0.06), windowMat);
+        win.position.set(x * w, 6.2 + row * 4, -d / 2 - 0.08);
+        grp.add(win);
+      }
+    }
+
+    if (options.patio) {
+      for (let t = 0; t < 3; t++) {
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.08, 12), awningCream);
+        table.position.set((t - 1) * 1.8, 0.55, -d / 2 - 2.2);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), poleMat);
+        pole.position.set((t - 1) * 1.8, 0.42, -d / 2 - 2.2);
+        grp.add(table, pole);
+      }
+    }
+
+    return { object: grp, type: options.label === "HOTEL" ? "hotel" : "venue" };
+  }
+
+  _createSignMaterial(label, background) {
+    this._signMaterials ??= new Map();
+    const key = `${label}:${background}`;
+    if (this._signMaterials.has(key)) return this._signMaterials.get(key);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 96;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fillRect(0, 0, canvas.width, 14);
+    ctx.strokeStyle = "rgba(255,255,255,0.65)";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.fillStyle = "#fff6d8";
+    ctx.font = "bold 44px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 4);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.anisotropy = 4;
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    this._signMaterials.set(key, material);
+    return material;
   }
 
   _createTree(i) {
@@ -377,17 +545,26 @@ export class RoadSystem {
 
     // Loop scenery and mountains
     this._updateLoopedObjects(carZ, this.mountains, 5800, 1000, 420, 460);
-    this._updateLoopedObjects(carZ, this.scenery,   3200,  620,  15, 42);
+    this._updateLoopedObjects(carZ, this.scenery,   4200,  620,  15, 42);
   }
 
   _updateLoopedObjects(carZ, objects, loop, behind, minSide, extraSide) {
     for (const item of objects) {
       const raw = carZ - behind + ((item.seed * 79) % loop);
       const z   = carZ - behind + ((((raw - carZ + behind) % loop) + loop) % loop);
-      const side = item.lane * (minSide + seeded(item.seed + 80) * extraSide);
+      const sideMin = item.minSide ?? minSide;
+      const sideExtra = item.extraSide ?? extraSide;
+      const side = item.lane * (sideMin + seeded(item.seed + 80) * sideExtra);
       item.object.position.copy(roadPoint(z, side));
-      item.object.rotation.y = seeded(item.seed) * Math.PI;
+      if (item.type === "building" || item.type === "venue" || item.type === "hotel") {
+        const toRoad = roadPoint(z, 0).sub(item.object.position);
+        item.object.rotation.y = Math.atan2(-toRoad.x, -toRoad.z);
+      } else {
+        item.object.rotation.y = seeded(item.seed) * Math.PI;
+      }
       if (item.type === "building") item.object.position.y -= 0.2;
+      if (item.type === "venue")    item.object.position.y -= 0.1;
+      if (item.type === "hotel")    item.object.position.y -= 0.15;
       if (item.mountain)           item.object.position.y -= 14;
     }
   }

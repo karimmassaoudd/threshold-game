@@ -150,7 +150,7 @@ export class SceneSetup {
     this.afterimage.uniforms.damp.value = 0.90;
 
     // FOV: widens gently with speed, jumps on turbo
-    const targetFov = car.turboActive ? 80 : 62 + Math.min(12, speedKmh * 0.065);
+    const targetFov = car.turboActive ? 88 : 62 + Math.min(14, speedKmh * 0.065);
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, 1 - Math.pow(0.0004, dt));
     this.camera.updateProjectionMatrix();
 

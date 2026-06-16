@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CAR_PRESETS } from "../config.js";
 
 export class GarageSystem {
@@ -112,70 +113,99 @@ export class GarageSystem {
     const carbon   = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.3, metalness: 0.6 });
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1, roughness: 0.04 });
     const underNeon = new THREE.MeshBasicMaterial({ color: 0x00ccff });
+    const panelLineMat = new THREE.MeshBasicMaterial({ color: 0x050607 });
+    const roundedBox = (w, h, d, radius = 0.08, segments = 3) =>
+      new RoundedBoxGeometry(w, h, d, segments, radius);
 
     // ── Body ─────────────────────────────────────────────────────────────────
     // All body parts are tagged with userData.paint = true so applyCustomization works
 
     // Main body slab
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.58, 5.9), paintMat);
+    const body = new THREE.Mesh(roundedBox(2.95, 0.62, 5.9, 0.18, 5), paintMat);
     body.position.y = 0.62;
     body.userData.paint = true;
 
+    const lowerBody = new THREE.Mesh(roundedBox(3.12, 0.28, 5.55, 0.12, 4), paintMat);
+    lowerBody.position.y = 0.36;
+    lowerBody.userData.paint = true;
+
     // Front hood (angled nose taper)
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.24, 1.6), paintMat);
+    const hood = new THREE.Mesh(roundedBox(2.54, 0.22, 1.6, 0.09, 4), paintMat);
     hood.position.set(0, 0.88, -2.55);
     hood.rotation.x = -0.06;
     hood.userData.paint = true;
 
     // Rear deck
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 0.95), paintMat);
+    const deck = new THREE.Mesh(roundedBox(2.68, 0.18, 0.95, 0.08, 4), paintMat);
     deck.position.set(0, 0.88, 2.55);
     deck.userData.paint = true;
 
     // Cabin / greenhouse
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.68, 1.95), paintMat);
+    const cabin = new THREE.Mesh(roundedBox(2.05, 0.66, 1.9, 0.1, 4), paintMat);
     cabin.position.set(0, 1.3, 0.18);
     cabin.userData.glass = true;
 
     // A-pillar taper (visual only)
-    const roofPanel = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 1.95), paintMat);
+    const roofPanel = new THREE.Mesh(roundedBox(1.78, 0.1, 1.55, 0.07, 3), paintMat);
     roofPanel.position.set(0, 1.64, 0.18);
     roofPanel.userData.paint = true;
 
     // Front splitter
-    const splitter = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.09, 0.52), carbon);
+    const splitter = new THREE.Mesh(roundedBox(3.25, 0.08, 0.52, 0.04, 2), carbon);
     splitter.position.set(0, 0.33, -3.25);
 
     // Rear diffuser
-    const diffuser = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.22, 0.48), carbon);
+    const diffuser = new THREE.Mesh(roundedBox(2.85, 0.22, 0.48, 0.04, 2), carbon);
     diffuser.position.set(0, 0.36, 3.26);
 
-    grp.add(body, hood, deck, cabin, roofPanel, splitter, diffuser);
+    grp.add(body, lowerBody, hood, deck, cabin, roofPanel, splitter, diffuser);
 
     // Professional body detailing: grille, vents, arches, mirrors, belt line.
-    const grille = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.26, 0.08), carbon);
+    const grille = new THREE.Mesh(roundedBox(1.62, 0.28, 0.08, 0.03, 2), carbon);
     grille.position.set(0, 0.58, -3.31);
     grp.add(grille);
 
+    const lowerGrille = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.12, 0.06), carbon);
+    lowerGrille.position.set(0, 0.38, -3.34);
+    grp.add(lowerGrille);
+
+    for (const z of [-1.52, 1.48]) {
+      const panelLine = new THREE.Mesh(new THREE.BoxGeometry(2.72, 0.018, 0.04), panelLineMat);
+      panelLine.position.set(0, 0.98, z);
+      grp.add(panelLine);
+    }
+
     for (const side of [-1, 1]) {
-      const hoodVent = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.035, 0.84), carbon);
+      const hoodVent = new THREE.Mesh(roundedBox(0.42, 0.035, 0.84, 0.025, 2), carbon);
       hoodVent.position.set(side * 0.58, 1.02, -2.55);
       hoodVent.rotation.x = -0.06;
       grp.add(hoodVent);
 
-      const sideIntake = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.9), carbon);
+      const sideIntake = new THREE.Mesh(roundedBox(0.08, 0.32, 0.9, 0.025, 2), carbon);
       sideIntake.position.set(side * 1.48, 0.78, 0.6);
       grp.add(sideIntake);
 
       const mirrorArm = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.08), carbon);
       mirrorArm.position.set(side * 1.32, 1.28, -0.94);
-      const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.28), carbon);
+      const mirror = new THREE.Mesh(roundedBox(0.42, 0.18, 0.28, 0.04, 3), carbon);
       mirror.position.set(side * 1.7, 1.3, -1.0);
       grp.add(mirrorArm, mirror);
 
       const belt = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.065, 4.35), carbon);
       belt.position.set(side * 1.47, 1.02, 0.04);
       grp.add(belt);
+
+      const sideWindow = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.34, 1.12), cabin.material);
+      sideWindow.position.set(side * 1.06, 1.33, 0.08);
+      sideWindow.userData.glass = true;
+      grp.add(sideWindow);
+
+      for (const z of [-2.05, 1.92]) {
+        const fender = new THREE.Mesh(roundedBox(0.16, 0.22, 1.28, 0.06, 3), paintMat);
+        fender.position.set(side * 1.46, 0.72, z);
+        fender.userData.paint = true;
+        grp.add(fender);
+      }
     }
 
     const rearLightBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.08, 0.08), brakeMat);
