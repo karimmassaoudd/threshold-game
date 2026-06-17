@@ -22,6 +22,10 @@ html, body {
   background: var(--bg);
   font-family: var(--font-ui);
   color: var(--text);
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #app {
@@ -37,6 +41,7 @@ html, body {
   width: 100% !important;
   height: 100% !important;
   display: block;
+  touch-action: none;
 }
 
 /* ── Speed lines overlay ─────────────────────────────────────────────────── */
@@ -256,6 +261,95 @@ html, body {
 .arcade-toast.show {
   opacity: 1;
   transform: translate(-50%, 0) scale(1);
+}
+
+.mobile-controls {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 12;
+  display: none;
+  pointer-events: none;
+  padding:
+    0
+    max(14px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom))
+    max(14px, env(safe-area-inset-left));
+}
+.touch-cluster,
+.touch-utility {
+  pointer-events: auto;
+}
+.touch-steer {
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(2, 74px);
+  gap: 10px;
+}
+.touch-actions {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: 68px 68px;
+  grid-template-rows: 54px 54px;
+  gap: 10px;
+  align-items: end;
+}
+.touch-utility {
+  position: absolute;
+  top: max(58px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+.touch-btn,
+.touch-chip {
+  border: 1px solid rgba(16,217,255,0.3);
+  background: rgba(5, 10, 17, 0.58);
+  color: #e8fbff;
+  font-family: var(--font-hud);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(0,0,0,0.28);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-btn {
+  height: 64px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+.touch-btn-main {
+  height: 74px;
+  grid-row: span 2;
+  color: #061116;
+  background: linear-gradient(180deg, rgba(32,241,255,0.95), rgba(16,217,255,0.62));
+  border-color: rgba(255,255,255,0.45);
+}
+.touch-btn-mid {
+  height: 54px;
+  font-size: 0.62rem;
+}
+.touch-btn-small {
+  height: 66px;
+}
+.touch-chip {
+  min-width: 64px;
+  height: 34px;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: rgba(255,255,255,0.78);
+  font-size: 0.58rem;
+}
+.touch-btn.pressed,
+.touch-btn:active,
+.touch-chip:active {
+  transform: translateY(1px) scale(0.98);
+  border-color: rgba(255,204,0,0.72);
+  box-shadow: 0 0 18px rgba(255,204,0,0.28), inset 0 0 18px rgba(255,204,0,0.16);
 }
 
 .progress-bar {
@@ -604,9 +698,106 @@ body.driving .prompt { opacity: 0; pointer-events: none; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .speedo { width: 150px; bottom: 14px; right: 14px; }
-  .speedo-inner strong { font-size: 2.6rem; }
-  .race-info { bottom: 14px; left: 14px; padding: 8px 12px; }
-  .garage { width: 260px; }
-  .prompt-inner strong { font-size: 2.6rem; }
+  .topbar {
+    padding: max(8px, env(safe-area-inset-top)) 10px 0;
+  }
+  .brand strong { font-size: 0.95rem; }
+  .brand span { font-size: 0.56rem; }
+  .telemetry { gap: 5px; font-size: 0.52rem; }
+  .telemetry span { padding: 2px 5px; }
+  .speedo {
+    width: 126px;
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 104px);
+    right: max(10px, env(safe-area-inset-right));
+    padding: 9px 10px 8px;
+    border-radius: 8px;
+  }
+  .speedo-inner strong { font-size: 2.15rem; }
+  .unit { font-size: 0.48rem; padding-bottom: 6px; }
+  .gear-badge { font-size: 1.12rem; width: 22px; }
+  .turbo-badge { font-size: 0.45rem; padding: 2px 4px; }
+  .race-info {
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 96px);
+    left: max(10px, env(safe-area-inset-left));
+    min-width: 112px;
+    padding: 7px 9px;
+    gap: 4px;
+    border-radius: 8px;
+  }
+  .ri-item span { font-size: 0.48rem; }
+  .ri-item strong { font-size: 0.72rem; }
+  .progress-bar span { font-size: 0.48rem; }
+  .garage {
+    top: max(44px, env(safe-area-inset-top));
+    width: min(92vw, 330px);
+    max-height: calc(100dvh - max(58px, env(safe-area-inset-top)));
+  }
+  .tabs { overflow-x: auto; }
+  .tab { font-size: 0.56rem; padding: 7px 8px 6px; }
+  .prompt-inner { padding: 0 22px; }
+  .prompt-inner strong { font-size: 2.15rem; }
+  .prompt-inner p { font-size: 0.75rem; }
+  .prompt-sub { font-size: 0.56rem !important; max-width: 310px; }
+  .arcade-toast { top: 13%; font-size: 1.2rem; }
+  .mobile-controls { display: block; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .mobile-controls { display: block; }
+}
+
+@media (min-width: 641px) and (max-width: 1180px) and (hover: none) and (pointer: coarse) {
+  .speedo {
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 120px);
+    right: max(22px, env(safe-area-inset-right));
+  }
+  .race-info {
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 118px);
+    left: max(22px, env(safe-area-inset-left));
+  }
+  .touch-steer {
+    grid-template-columns: repeat(2, 92px);
+    gap: 14px;
+  }
+  .touch-actions {
+    grid-template-columns: 82px 82px;
+    grid-template-rows: 64px 64px;
+    gap: 14px;
+  }
+  .touch-btn { height: 78px; }
+  .touch-btn-main { height: 92px; }
+  .touch-btn-mid { height: 64px; }
+  .touch-chip { min-width: 78px; height: 38px; }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .topbar { padding-top: max(5px, env(safe-area-inset-top)); }
+  .speedo {
+    width: 116px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .race-info {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    max-width: 112px;
+  }
+  .race-info .ri-item:nth-of-type(3),
+  .race-info .ri-item:nth-of-type(5),
+  .progress-bar {
+    display: none;
+  }
+  .touch-steer {
+    grid-template-columns: repeat(2, 68px);
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .touch-actions {
+    grid-template-columns: 62px 62px;
+    grid-template-rows: 48px 48px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .touch-btn { height: 58px; font-size: 0.64rem; }
+  .touch-btn-mid { height: 48px; font-size: 0.52rem; }
+  .touch-btn-main { height: 64px; }
+  .touch-utility {
+    top: max(38px, env(safe-area-inset-top));
+  }
 }

@@ -64,6 +64,7 @@ export class RacingGame {
   // ── Events ────────────────────────────────────────────────────────────────
   _bindEvents() {
     window.addEventListener("resize", () => this.sceneSetup.resize());
+    window.visualViewport?.addEventListener("resize", () => this.sceneSetup.resize());
 
     document.addEventListener("keydown", (e) => {
       this.input.add(e.code);
@@ -94,7 +95,72 @@ export class RacingGame {
       if (prompt) prompt.classList.add("hidden");
     };
     document.addEventListener("click", startOnce, { once: false });
+    document.addEventListener("pointerdown", startOnce, { passive: true });
     this.canvas.addEventListener("click", startOnce);
+    this._bindTouchControls(startOnce);
+    window.addEventListener("blur", () => this.input.clear());
+    window.addEventListener("contextmenu", (event) => event.preventDefault());
+  }
+
+  _bindTouchControls(startOnce) {
+    const controls = document.getElementById("mobileControls");
+    if (!controls) return;
+
+    for (const button of controls.querySelectorAll("[data-code]")) {
+      const code = button.dataset.code;
+      const pressControl = () => {
+        startOnce();
+        this.input.add(code);
+        button.classList.add("pressed");
+      };
+      const releaseControl = () => {
+        this.input.delete(code);
+        button.classList.remove("pressed");
+      };
+      const press = (event) => {
+        event.preventDefault();
+        pressControl();
+        button.setPointerCapture?.(event.pointerId);
+      };
+      const release = (event) => {
+        event.preventDefault();
+        releaseControl();
+      };
+      const touchPress = (event) => {
+        event.preventDefault();
+        pressControl();
+      };
+      const touchRelease = (event) => {
+        event.preventDefault();
+        releaseControl();
+      };
+      button.addEventListener("pointerdown", press);
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("pointerleave", release);
+      button.addEventListener("touchstart", touchPress, { passive: false });
+      button.addEventListener("touchend", touchRelease, { passive: false });
+      button.addEventListener("touchcancel", touchRelease, { passive: false });
+    }
+
+    controls.querySelector('[data-action="camera"]')?.addEventListener("click", (event) => {
+      event.preventDefault();
+      startOnce();
+      this.cameraRig.nextMode();
+      this.hud.applySettings(this.settings);
+    });
+
+    controls.querySelector('[data-action="garage"]')?.addEventListener("click", (event) => {
+      event.preventDefault();
+      startOnce();
+      this.settingsUI.toggleGarage();
+    });
+
+    controls.querySelector('[data-action="reset"]')?.addEventListener("click", (event) => {
+      event.preventDefault();
+      startOnce();
+      this.reset();
+    });
   }
 
   // ── Car swap (garage change) ───────────────────────────────────────────────

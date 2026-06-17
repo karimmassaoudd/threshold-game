@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>APEX DRIVE – 4K Street Sprint Racing</title>
   <meta name="description"
     content="Apex Drive – an adrenaline-fuelled street racing game with turbo, drift, and cinematic cameras." />
@@ -234,11 +234,29 @@
 
       <div class="arcade-toast" id="arcadeToast" aria-hidden="true"></div>
 
+      <div class="mobile-controls" id="mobileControls" aria-label="Touch driving controls">
+        <div class="touch-cluster touch-steer">
+          <button class="touch-btn touch-btn-small" type="button" data-code="KeyA" aria-label="Steer left">LEFT</button>
+          <button class="touch-btn touch-btn-small" type="button" data-code="KeyD" aria-label="Steer right">RIGHT</button>
+        </div>
+        <div class="touch-cluster touch-actions">
+          <button class="touch-btn touch-btn-mid" type="button" data-code="Space" aria-label="Handbrake">DRIFT</button>
+          <button class="touch-btn touch-btn-mid" type="button" data-code="ShiftLeft" aria-label="Turbo">BOOST</button>
+          <button class="touch-btn touch-btn-mid" type="button" data-code="KeyS" aria-label="Brake">BRAKE</button>
+          <button class="touch-btn touch-btn-main" type="button" data-code="KeyW" aria-label="Accelerate">GAS</button>
+        </div>
+        <div class="touch-utility">
+          <button class="touch-chip" type="button" data-action="camera" aria-label="Change camera">CAM</button>
+          <button class="touch-chip" type="button" data-action="garage" aria-label="Open garage">GARAGE</button>
+          <button class="touch-chip" type="button" data-action="reset" aria-label="Reset race">RESET</button>
+        </div>
+      </div>
+
       <!-- Initial prompt overlay -->
       <div class="prompt" id="prompt">
         <div class="prompt-inner">
           <strong>APEX DRIVE</strong>
-          <p>Click anywhere to start</p>
+          <p>Click or tap to start</p>
           <p class="prompt-sub">WASD / Arrows to drive &nbsp;·&nbsp; Shift for Turbo &nbsp;·&nbsp; Space handbrake
             &nbsp;·&nbsp; C camera &nbsp;·&nbsp; G garage</p>
         </div>
