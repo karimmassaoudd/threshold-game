@@ -1,3 +1,5 @@
+const MUSIC_BUS_GAIN = 0.34;
+
 export class AudioManager {
   constructor(settings) {
     this.context    = null;
@@ -57,13 +59,13 @@ export class AudioManager {
     grp.masterGain = masterGain;
 
     const drive = t.createWaveShaper();
-    drive.curve = this._makeDriveCurve(1.8);
-    drive.oversample = "2x";
+    drive.curve = this._makeDriveCurve(3.2);
+    drive.oversample = "4x";
 
     const filter = t.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 900;
-    filter.Q.value = 0.9;
+    filter.frequency.value = 1200;
+    filter.Q.value = 1.05;
     filter.connect(masterGain);
     grp.filter = filter;
     drive.connect(filter);
@@ -79,11 +81,12 @@ export class AudioManager {
     grp.idleLfoDepth = idleLfoDepth;
 
     const layers = [
-      { type: "triangle", harmonic: 0.33, detune: -7, gain: 0.26 },
-      { type: "sawtooth", harmonic: 0.50, detune: -3, gain: 0.32 },
-      { type: "sawtooth", harmonic: 1.00, detune:  0, gain: 0.42 },
-      { type: "square",   harmonic: 1.50, detune:  5, gain: 0.11 },
-      { type: "sine",     harmonic: 2.00, detune:  8, gain: 0.06 },
+      { type: "sine",     harmonic: 0.25, detune: -8, gain: 0.32 },
+      { type: "triangle", harmonic: 0.50, detune: -5, gain: 0.34 },
+      { type: "sawtooth", harmonic: 1.00, detune:  0, gain: 0.46 },
+      { type: "sawtooth", harmonic: 1.50, detune:  4, gain: 0.22 },
+      { type: "square",   harmonic: 2.00, detune:  8, gain: 0.09 },
+      { type: "sine",     harmonic: 3.00, detune: 12, gain: 0.035 },
     ];
 
     for (const layer of layers) {
@@ -199,56 +202,108 @@ export class AudioManager {
 
   // ── Ambient music: bass pad + mid pad + gentle arpeggiation ───────────────
   _createMusicLayer() {
-    const t    = this.context;
-    const out  = t.createGain();
-    out.gain.value = this.musicVolume * 0.06;
+    const t = this.context;
+    const out = t.createGain();
+    out.gain.value = this.musicVolume * MUSIC_BUS_GAIN;
+
+    const musicFilter = t.createBiquadFilter();
+    musicFilter.type = "lowpass";
+    musicFilter.frequency.value = 9000;
+    musicFilter.Q.value = 0.7;
+    musicFilter.connect(out).connect(this.master);
 
     const reverb = t.createConvolver();
-    // Fake impulse response for reverb
     const irBuf = t.createBuffer(2, t.sampleRate * 2, t.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = irBuf.getChannelData(ch);
-      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.8);
+      for (let i = 0; i < d.length; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
+      }
     }
     reverb.buffer = irBuf;
-    reverb.connect(out).connect(this.master);
+    reverb.connect(musicFilter);
 
-    const notes = [55, 82.4, 110, 123.5]; // A1 E2 A2 B2
-    const oscs = [];
-    for (const freq of notes) {
-      const osc  = t.createOscillator();
+    const makeOneShot = (when, freq, duration, type, gainValue, destination = musicFilter) => {
+      const osc = t.createOscillator();
       const gain = t.createGain();
-      osc.type           = "triangle";
-      osc.frequency.value = freq;
-      gain.gain.value     = 0.06;
-      osc.connect(gain).connect(reverb);
-      osc.start();
-      oscs.push({ osc, gain });
-    }
-
-    // Simple 4-beat pulse for rhythm feel
-    let beat = 0;
-    const bpm = 128;
-    const beatMs = (60 / bpm) * 1000;
-    const pulse = () => {
-      if (!this.context || this.muted) return;
-      const activeNote = oscs[beat % oscs.length];
-      const g = activeNote.gain;
-      const ct = this.context.currentTime;
-      g.gain.setValueAtTime(0.12, ct);
-      g.gain.exponentialRampToValueAtTime(0.04, ct + 0.3);
-      beat++;
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, when);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.exponentialRampToValueAtTime(gainValue, when + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      osc.connect(gain).connect(destination);
+      osc.start(when);
+      osc.stop(when + duration + 0.03);
     };
-    this._musicInterval = setInterval(pulse, beatMs);
 
-    return { oscs, out };
+    const makeNoiseHit = (when, duration, gainValue, filterFreq, filterType = "highpass") => {
+      const buffer = t.createBuffer(1, Math.max(1, Math.floor(t.sampleRate * duration)), t.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+      const src = t.createBufferSource();
+      const filter = t.createBiquadFilter();
+      const gain = t.createGain();
+      src.buffer = buffer;
+      filter.type = filterType;
+      filter.frequency.value = filterFreq;
+      filter.Q.value = 0.8;
+      gain.gain.setValueAtTime(gainValue, when);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      src.connect(filter).connect(gain).connect(musicFilter);
+      src.start(when);
+      src.stop(when + duration);
+    };
+
+    const bpm = 136;
+    const stepTime = 60 / bpm / 4;
+    let step = 0;
+    let nextTime = t.currentTime + 0.08;
+    const bassPattern = [55, 55, 82.41, 55, 73.42, 55, 98, 82.41, 55, 55, 110, 98, 73.42, 82.41, 55, 49];
+    const arpPattern = [220, 277.18, 329.63, 440, 392, 329.63, 277.18, 220];
+    const pulse = () => {
+      if (!this.context) return;
+      const now = this.context.currentTime;
+      if (this.muted) {
+        nextTime = now + 0.08;
+        return;
+      }
+      while (nextTime < now + 0.16) {
+        const sixteenth = step % 16;
+        const bass = bassPattern[step % bassPattern.length];
+
+        if (sixteenth % 4 === 0) {
+          makeOneShot(nextTime, 95, 0.16, "sine", 0.28);
+          makeOneShot(nextTime, bass, 0.28, "sawtooth", 0.15);
+        }
+
+        if (sixteenth === 4 || sixteenth === 12) {
+          makeNoiseHit(nextTime, 0.12, 0.11, 1500, "bandpass");
+        }
+
+        if (sixteenth % 2 === 1) {
+          makeNoiseHit(nextTime, 0.045, 0.055, 6500, "highpass");
+        }
+
+        if (sixteenth % 2 === 0) {
+          const arp = arpPattern[(step / 2) % arpPattern.length | 0];
+          makeOneShot(nextTime, arp, 0.12, "triangle", 0.095, reverb);
+        }
+
+        step++;
+        nextTime += stepTime;
+      }
+    };
+    this._musicInterval = setInterval(pulse, 35);
+
+    return { out, musicFilter };
   }
 
   applySettings(settings) {
     this.soundVolume = settings.soundVolume;
     this.musicVolume = settings.musicVolume;
     if (this.master) this.master.gain.value = this.muted ? 0 : settings.soundVolume;
-    if (this._music) this._music.out.gain.value = settings.musicVolume * 0.06;
+    if (this._music) this._music.out.gain.value = settings.musicVolume * MUSIC_BUS_GAIN;
   }
 
   toggleMute() {
@@ -267,23 +322,23 @@ export class AudioManager {
     const throttle = input.has("KeyW") || input.has("ArrowUp");
     const load = throttle ? 1 : car.turboActive ? 0.75 : 0.32;
     const rpm = Math.max(0.08, car.rpm);
-    const baseFreq = 36 + rpm * 145 + speedKmh * 0.08;
-    const engVol = 0.026 + rpm * 0.035 + load * 0.034 + Math.min(0.025, speedKmh / 3600);
+    const baseFreq = 42 + rpm * 210 + speedKmh * 0.045;
+    const engVol = 0.028 + rpm * 0.042 + load * 0.038 + Math.min(0.024, speedKmh / 3600);
 
     for (const osc of this._engine.oscs) {
       const harmonic = osc.userData?.harmonic ?? 1;
-      const turboPitch = car.turboActive ? 1.045 : 1;
+      const turboPitch = car.turboActive ? 1.08 : 1;
       osc.frequency.setTargetAtTime(baseFreq * harmonic * turboPitch, t, 0.035);
     }
     this._engine.masterGain.gain.setTargetAtTime(engVol, t, 0.05);
-    this._engine.filter.frequency.setTargetAtTime(520 + rpm * 1700 + load * 360, t, 0.08);
-    this._engine.filter.Q.setTargetAtTime(0.85 + load * 0.45, t, 0.08);
+    this._engine.filter.frequency.setTargetAtTime(680 + rpm * 2600 + load * 650, t, 0.08);
+    this._engine.filter.Q.setTargetAtTime(0.95 + load * 0.65, t, 0.08);
     this._engine.idleLfo.frequency.setTargetAtTime(8 + rpm * 25, t, 0.12);
     this._engine.idleLfoDepth.gain.setTargetAtTime(0.004 + (1 - rpm) * 0.009, t, 0.12);
 
     if (this._patrolTexture) {
-      const exhaustVol = 0.012 + rpm * 0.026 + load * 0.038 + (car.drifting ? 0.018 : 0);
-      const intakeVol = throttle ? 0.012 + rpm * 0.035 + (car.turboActive ? 0.018 : 0) : 0.002;
+      const exhaustVol = 0.016 + rpm * 0.032 + load * 0.043 + (car.drifting ? 0.014 : 0);
+      const intakeVol = throttle ? 0.014 + rpm * 0.038 + (car.turboActive ? 0.026 : 0) : 0.003;
       this._patrolTexture.exhaustGain.gain.setTargetAtTime(exhaustVol, t, 0.055);
       this._patrolTexture.exhaustFilter.frequency.setTargetAtTime(105 + rpm * 260 + load * 80, t, 0.08);
       this._patrolTexture.intakeGain.gain.setTargetAtTime(intakeVol, t, 0.045);
@@ -301,8 +356,8 @@ export class AudioManager {
     this._lastThrottle = throttle;
 
     // ── Turbo ─────────────────────────────────────────────────────────────────
-    const turboFreq = car.turboActive ? 580 + speedKmh * 2.35 + rpm * 260 : 240;
-    const turboVol  = car.turboActive ? 0.055 + rpm * 0.025 : 0;
+    const turboFreq = car.turboActive ? 760 + speedKmh * 2.8 + rpm * 360 : 240;
+    const turboVol  = car.turboActive ? 0.085 + rpm * 0.04 : 0;
     this._turbo.osc.frequency.setTargetAtTime(turboFreq, t, 0.025);
     this._turbo.gain.gain.setTargetAtTime(turboVol, t, 0.04);
 
@@ -390,6 +445,62 @@ export class AudioManager {
     src.buffer = buf;
     src.connect(gain).connect(this.master);
     src.start();
+  }
+
+  playPickup() {
+    if (!this.context) return;
+    const t = this.context.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const osc = this.context.createOscillator();
+      const gain = this.context.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime([660, 880, 1320][i], t + i * 0.045);
+      gain.gain.setValueAtTime(0.0001, t + i * 0.045);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + i * 0.045 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.045 + 0.15);
+      osc.connect(gain).connect(this.master);
+      osc.start(t + i * 0.045);
+      osc.stop(t + i * 0.045 + 0.18);
+    }
+  }
+
+  playBoost() {
+    if (!this.context) return;
+    const t = this.context.currentTime;
+    const osc = this.context.createOscillator();
+    const gain = this.context.createGain();
+    const filter = this.context.createBiquadFilter();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(760, t + 0.2);
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(900, t);
+    filter.frequency.exponentialRampToValueAtTime(2400, t + 0.22);
+    filter.Q.value = 1.6;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.16, t + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    osc.connect(filter).connect(gain).connect(this.master);
+    osc.start(t);
+    osc.stop(t + 0.32);
+  }
+
+  playSpeedTrap() {
+    if (!this.context) return;
+    const t = this.context.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = this.context.createOscillator();
+      const gain = this.context.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(notes[i], t + i * 0.04);
+      gain.gain.setValueAtTime(0.0001, t + i * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.08, t + i * 0.04 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.04 + 0.12);
+      osc.connect(gain).connect(this.master);
+      osc.start(t + i * 0.04);
+      osc.stop(t + i * 0.04 + 0.14);
+    }
   }
 
   destroy() {

@@ -231,6 +231,32 @@ html, body {
   font-weight: 700;
   color: #fff;
 }
+#combo.hot {
+  color: var(--turbo);
+  text-shadow: 0 0 10px var(--turbo);
+}
+
+.arcade-toast {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -10px) scale(0.96);
+  font-family: var(--font-hud);
+  font-size: clamp(1.3rem, 3vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow:
+    0 0 10px rgba(16,217,255,0.95),
+    0 0 26px rgba(255,36,56,0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.arcade-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
 
 .progress-bar {
   display: flex;

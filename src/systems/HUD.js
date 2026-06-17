@@ -8,6 +8,9 @@ export class HUD {
       rpm:      document.querySelector("#rpm"),
       gear:     document.querySelector("#gear"),
       nitro:    document.querySelector("#nitro"),
+      score:    document.querySelector("#score"),
+      combo:    document.querySelector("#combo"),
+      toast:    document.querySelector("#arcadeToast"),
       lap:      document.querySelector("#lap"),
       time:     document.querySelector("#time"),
       damage:   document.querySelector("#damage"),
@@ -16,6 +19,7 @@ export class HUD {
     this._hudEl     = document.querySelector(".hud");
     this._damageFlashTimer = 0;
     this._prevDamage = 0;
+    this._toastTimer = null;
     this.applySettings(settings);
   }
 
@@ -26,6 +30,22 @@ export class HUD {
 
   setFPS(fps) {
     if (this.nodes.fps) this.nodes.fps.textContent = `${fps} FPS`;
+  }
+
+  setArcade(score, combo, message = null) {
+    if (this.nodes.score) this.nodes.score.textContent = String(score).padStart(6, "0");
+    if (this.nodes.combo) {
+      this.nodes.combo.textContent = `x${combo}`;
+      this.nodes.combo.classList.toggle("hot", combo > 1);
+    }
+    if (message && this.nodes.toast) {
+      this.nodes.toast.textContent = message;
+      this.nodes.toast.classList.remove("show");
+      void this.nodes.toast.offsetWidth;
+      this.nodes.toast.classList.add("show");
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => this.nodes.toast?.classList.remove("show"), 850);
+    }
   }
 
   _formatTime(seconds) {

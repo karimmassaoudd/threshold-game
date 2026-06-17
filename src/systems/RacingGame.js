@@ -10,6 +10,7 @@ import { TrafficSystem } from "./TrafficSystem.js";
 import { AudioManager }  from "./AudioManager.js";
 import { HUD }           from "./HUD.js";
 import { SettingsUI }    from "./SettingsUI.js";
+import { ArcadeEffectsSystem } from "./ArcadeEffectsSystem.js";
 
 export class RacingGame {
   constructor(canvas) {
@@ -28,6 +29,7 @@ export class RacingGame {
     this.hud        = new HUD(this.settings);
     this.cameraRig  = new CameraRig(this.sceneSetup.camera, canvas, this.settings);
     this.traffic    = new TrafficSystem(this.sceneSetup.scene, this.physics, this.road);
+    this.arcade     = new ArcadeEffectsSystem(this.sceneSetup.scene, this.audio, this.hud);
     this.car        = null;
 
     // FPS counter
@@ -122,6 +124,7 @@ export class RacingGame {
     this.physics.reset();
     this.car?.reset();
     this.traffic.reset(0);
+    this.arcade.reset();
     this.audio.playCrash(0.08);
   }
 
@@ -135,6 +138,7 @@ export class RacingGame {
     this.physics.step(dt);
     this.car.update(dt, this.input, this.settings);
     this.road.update(this.car.position.z);
+    this.arcade.update(dt, this.car);
     this.traffic.update(dt, this.car, this.settings);
     this.cameraRig.update(dt, this.car, this.input);
     this.audio.update(this.car, this.input);

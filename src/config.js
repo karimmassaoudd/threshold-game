@@ -40,7 +40,7 @@ export const CAR_PRESETS = [
 export const DEFAULT_SETTINGS = {
   graphics: "Balanced",
   soundVolume: 0.75,
-  musicVolume: 0.35,
+  musicVolume: 0.65,
   cameraSensitivity: 0.65,
   controlScheme: "WASD",
   shadows: false,

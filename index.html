@@ -58,6 +58,14 @@
           <span>DMG</span>
           <strong id="damage">0%</strong>
         </div>
+        <div class="ri-item">
+          <span>SCORE</span>
+          <strong id="score">000000</strong>
+        </div>
+        <div class="ri-item">
+          <span>COMBO</span>
+          <strong id="combo">x1</strong>
+        </div>
         <div class="progress-bar">
           <span>ROUTE</span>
           <em><i id="progressFill"></i></em>
@@ -223,6 +231,8 @@
 
         <button id="resetButton" type="button" class="btn-danger">↺ Reset Race</button>
       </aside>
+
+      <div class="arcade-toast" id="arcadeToast" aria-hidden="true"></div>
 
       <!-- Initial prompt overlay -->
       <div class="prompt" id="prompt">
