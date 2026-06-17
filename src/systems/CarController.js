@@ -141,7 +141,8 @@ export class CarController {
 
     // ── Steering ─────────────────────────────────────────────────────────────
     // Speed-sensitive: fast car = less steering range, slower response
-    const steerTarget  = (right ? 1 : 0) - (left ? 1 : 0);
+    // In the chase camera, positive road lateral appears on the left side of the screen.
+    const steerTarget  = (left ? 1 : 0) - (right ? 1 : 0);
     const steerRate    = 1 - Math.pow(0.0004, dt);
     this.steer = THREE.MathUtils.lerp(this.steer, steerTarget, steerRate);
 
@@ -226,8 +227,9 @@ export class CarController {
 
     // Point the car toward its actual travel direction, including lane changes.
     const movementYaw = Math.atan2(this.lateralSpeed, Math.max(2, Math.abs(this.speed)));
-    const steeringYaw = -movementYaw * 0.82;
-    const driftYaw = -this.driftAmount * 0.82;
+    // Match the car nose to the same screen direction as the lane change.
+    const steeringYaw = movementYaw * 0.82;
+    const driftYaw = this.driftAmount * 0.82;
     this.yaw = THREE.MathUtils.lerp(this.yaw, curveYaw + steeringYaw + driftYaw, this.drifting ? 0.28 : 0.22);
 
     this.position.copy(road);
