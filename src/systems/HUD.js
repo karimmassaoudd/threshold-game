@@ -6,6 +6,7 @@ export class HUD {
       camera:   document.querySelector("#cameraMode"),
       speed:    document.querySelector("#speed"),
       rpm:      document.querySelector("#rpm"),
+      rpmValue: document.querySelector("#rpmValue"),
       gear:     document.querySelector("#gear"),
       nitro:    document.querySelector("#nitro"),
       score:    document.querySelector("#score"),
@@ -62,6 +63,11 @@ export class HUD {
 
     // RPM bar
     if (this.nodes.rpm) this.nodes.rpm.style.width = `${Math.round(car.rpm * 100)}%`;
+    if (this.nodes.rpmValue) {
+      const rpmValue = Math.round((900 + car.rpm * 7800) / 100) * 100;
+      this.nodes.rpmValue.textContent = String(rpmValue).padStart(4, "0");
+      this.nodes.rpmValue.classList.toggle("redline", car.rpm > 0.86);
+    }
 
     // Gear
     if (this.nodes.gear) {

@@ -505,7 +505,7 @@ export class ArcadeEffectsSystem {
   }
 
   _boostCar(car, strength = 1, label = "BOOST") {
-    const cap = 450 / 3.6;
+    const cap = 550 / 3.6;
     car.speed = Math.min(cap, car.speed + BOOST_SPEED * strength);
     car.turbo = Math.min(100, car.turbo + 18 * strength);
     car.cameraShake = Math.max(car.cameraShake, 0.28 * strength);

@@ -87,7 +87,7 @@ export class CarController {
     const turboKey   = input.has("ShiftLeft") || input.has("ShiftRight");
 
     const maxSpeedMs = this.stats.maxSpeed / 3.6; // km/h → m/s
-    const turboMaxMs = 450 / 3.6;
+    const turboMaxMs = 550 / 3.6;
 
     // ── Turbo ─────────────────────────────────────────────────────────────────
     const turboCanRun = turboKey && throttle && this.turbo > 0;

@@ -9,7 +9,7 @@ export const CAR_PRESETS = [
     brake: 58,
     grip: 1.08,
     steering: 1.1,
-    maxSpeed: 450,
+    maxSpeed: 550,
   },
   {
     id: "vortex",
@@ -21,7 +21,7 @@ export const CAR_PRESETS = [
     brake: 62,
     grip: 0.98,
     steering: 0.98,
-    maxSpeed: 450,
+    maxSpeed: 550,
   },
   {
     id: "titan",
@@ -33,7 +33,7 @@ export const CAR_PRESETS = [
     brake: 66,
     grip: 0.92,
     steering: 0.86,
-    maxSpeed: 450,
+    maxSpeed: 550,
   },
 ];
 
