@@ -117,6 +117,7 @@ export class SceneSetup {
       Rain:   [0x263a46, 0x2d4857, 1.6, 1.2, 0.5,  0.88],
       Storm:  [0x111920, 0x15222b, 0.9, 0.8, 0.92, 0.72],
       Sunset: [0xff8c50, 0xf0904d, 2.9, 1.5, 0,    1.22],
+      Night:  [0x07101a, 0x0a1724, 0.45, 0.55, 0,   0.82],
     }[settings.weather] ?? [0x8fd0f0, 0xb0ddf7, 3.4, 1.9, 0, 1.08];
 
     this.scene.background.setHex(wx[0]);

@@ -19,6 +19,14 @@ const treeMat      = new THREE.MeshStandardMaterial({ color: 0x0d3525, roughness
 const trunkMat     = new THREE.MeshStandardMaterial({ color: 0x3c2b1d, roughness: 0.85 });
 const poleMat      = new THREE.MeshStandardMaterial({ color: 0x5a6a70, roughness: 0.5, metalness: 0.4 });
 const lampMat      = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+const lampGlowMat  = new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.72 });
+const lightPoolMat = new THREE.MeshBasicMaterial({
+  color: 0xffe7a0,
+  transparent: true,
+  opacity: 0.18,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
 const cafeMat      = new THREE.MeshStandardMaterial({ color: 0x334a57, roughness: 0.72, metalness: 0.08 });
 const restaurantMat = new THREE.MeshStandardMaterial({ color: 0x4d3234, roughness: 0.76, metalness: 0.06 });
 const hotelMat     = new THREE.MeshStandardMaterial({ color: 0x263848, roughness: 0.64, metalness: 0.16 });
@@ -46,12 +54,14 @@ export class RoadSystem {
     this.scenery     = [];
     this.mountains   = [];
     this.streetLamps = [];
+    this.highwayLightPools = [];
     scene.add(this.root);
     this._createTerrain();
     this._createRoadRibbon();
     this._createSegments();
     this._createPhysicsBarriers();
     this._createEnvironment();
+    this.applySettings({ weather: "Clear" });
     this._updateRoadRibbon(-this.segmentLength * 2);
   }
 
@@ -184,17 +194,21 @@ export class RoadSystem {
         }
       }
 
-      // Street lamps are sparse in 240 FPS mode.
-      if (i % 6 === 0) {
-        const lampGrp = this._createStreetLamp();
-        lampGrp.position.set(ROAD_W / 2 + 3.5, 0, 0);
-        grp.add(lampGrp);
+      // Highway lighting repeats down both sides; only some lamps cast real point light.
+      for (const z of [-22, 18]) {
+        for (const side of [-1, 1]) {
+          const withLight = i % 4 === 0 && z === -22;
+          const lampGrp = this._createStreetLamp(side, withLight);
+          lampGrp.position.set(side * (ROAD_W / 2 + 4.15), 0, z);
+          grp.add(lampGrp);
+          this.streetLamps.push(lampGrp);
 
-        const lampGrp2 = this._createStreetLamp();
-        lampGrp2.position.set(-(ROAD_W / 2 + 3.5), 0, 0);
-        grp.add(lampGrp2);
-
-        this.streetLamps.push(lampGrp, lampGrp2);
+          const pool = this._createLightPool();
+          pool.position.set(side * (ROAD_W / 2 - 2.2), 0.058, z + 1.8);
+          pool.scale.x = 1.25;
+          grp.add(pool);
+          this.highwayLightPools.push(pool);
+        }
       }
 
       this.root.add(grp);
@@ -202,7 +216,7 @@ export class RoadSystem {
     }
   }
 
-  _createStreetLamp() {
+  _createStreetLamp(side = 1, withLight = false) {
     const grp = new THREE.Group();
 
     // Pole
@@ -218,17 +232,50 @@ export class RoadSystem {
       new THREE.BoxGeometry(2.5, 0.12, 0.12),
       poleMat
     );
-    arm.position.set(1.25, 7.5, 0);
+    arm.position.set(-side * 1.25, 7.5, 0);
 
     // Lamp head
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 0.22, 0.45),
       lampMat
     );
-    head.position.set(2.5, 7.35, 0);
+    head.position.set(-side * 2.5, 7.35, 0);
 
-    grp.add(pole, arm, head);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 8), lampGlowMat);
+    glow.position.copy(head.position);
+
+    grp.add(pole, arm, head, glow);
+
+    if (withLight) {
+      const light = new THREE.PointLight(0xffe7a0, 1.35, 34, 2.2);
+      light.position.copy(head.position);
+      light.castShadow = false;
+      light.userData.baseIntensity = 1.35;
+      grp.add(light);
+    }
+
     return grp;
+  }
+
+  _createLightPool() {
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(4.8, 24), lightPoolMat);
+    pool.rotation.x = -Math.PI / 2;
+    return pool;
+  }
+
+  applySettings(settings) {
+    const night = settings.weather === "Night";
+    for (const lamp of this.streetLamps) {
+      lamp.visible = night;
+      lamp.traverse((child) => {
+        if (!child.isLight) return;
+        child.visible = night;
+        child.intensity = night ? child.userData.baseIntensity ?? 1.35 : 0;
+      });
+    }
+    for (const pool of this.highwayLightPools) {
+      pool.visible = night;
+    }
   }
 
   _createLaneArrow(direction = 1) {

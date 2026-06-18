@@ -15,6 +15,8 @@ const padMat = new THREE.MeshBasicMaterial({ color: 0x0cd4ff, transparent: true,
 const padTrimMat = new THREE.MeshBasicMaterial({ color: 0xffcc33, transparent: true, opacity: 0.95 });
 const orbMat = new THREE.MeshBasicMaterial({ color: 0xffcc33, transparent: true, opacity: 0.9 });
 const orbShellMat = new THREE.MeshBasicMaterial({ color: 0x14f1ff, transparent: true, opacity: 0.24, wireframe: true });
+const repairMat = new THREE.MeshBasicMaterial({ color: 0x44ff99, transparent: true, opacity: 0.9 });
+const repairShellMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.78 });
 const gateMat = new THREE.MeshBasicMaterial({ color: 0x14f1ff, transparent: true, opacity: 0.42 });
 const trailMat = new THREE.MeshBasicMaterial({ color: 0x10d9ff, transparent: true, opacity: 0.0, depthWrite: false });
 const hotTrailMat = new THREE.MeshBasicMaterial({ color: 0xff2448, transparent: true, opacity: 0.0, depthWrite: false });
@@ -31,17 +33,21 @@ export class ArcadeEffectsSystem {
     this.root = new THREE.Group();
     this.boostPads = [];
     this.orbs = [];
+    this.repairPickups = [];
     this.gates = [];
     this.speedTraps = [];
     this.billboards = [];
     this.particles = [];
     this.collected = new Set();
+    this.repaired = new Set();
+    this.nearMisses = new Set();
     this.triggeredPads = new Set();
     this.triggeredGates = new Set();
     this.triggeredSpeedTraps = new Set();
     this.score = 0;
     this.combo = 1;
     this.comboTimer = 0;
+    this.heat = 0;
     this.boostTimer = 0;
     this.driftScoreTimer = 0;
     this.particleTimer = 0;
@@ -50,6 +56,7 @@ export class ArcadeEffectsSystem {
     scene.add(this.root);
     this._createBoostPads();
     this._createOrbs();
+    this._createRepairPickups();
     this._createGates();
     this._createSpeedTraps();
     this._createBillboards();
@@ -60,12 +67,15 @@ export class ArcadeEffectsSystem {
 
   reset() {
     this.collected.clear();
+    this.repaired.clear();
+    this.nearMisses.clear();
     this.triggeredPads.clear();
     this.triggeredGates.clear();
     this.triggeredSpeedTraps.clear();
     this.score = 0;
     this.combo = 1;
     this.comboTimer = 0;
+    this.heat = 0;
     this.boostTimer = 0;
     this.driftScoreTimer = 0;
     this.particleTimer = 0;
@@ -75,6 +85,7 @@ export class ArcadeEffectsSystem {
       particle.object.visible = false;
     }
     this.hud?.setArcade(this.score, this.combo, "");
+    this.hud?.setHeat?.(this.heat);
   }
 
   _createBoostPads() {
@@ -113,6 +124,29 @@ export class ArcadeEffectsSystem {
       grp.add(orb, shellA, shellB);
       this.root.add(grp);
       this.orbs.push({ object: grp, seed: i + 420, spacing: 145, lateral: [-7.4, -3.1, 3.1, 7.4][i % 4] });
+    }
+  }
+
+  _createRepairPickups() {
+    const coreGeo = new THREE.SphereGeometry(0.48, 16, 12);
+    const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 30);
+    const barGeo = new THREE.BoxGeometry(0.24, 0.24, 1.12);
+    for (let i = 0; i < 12; i++) {
+      const grp = new THREE.Group();
+      const core = new THREE.Mesh(coreGeo, repairMat);
+      const ring = new THREE.Mesh(ringGeo, repairShellMat);
+      const plusA = new THREE.Mesh(barGeo, repairShellMat);
+      const plusB = new THREE.Mesh(barGeo, repairShellMat);
+      ring.rotation.x = Math.PI / 2;
+      plusA.rotation.z = Math.PI / 2;
+      grp.add(core, ring, plusA, plusB);
+      this.root.add(grp);
+      this.repairPickups.push({
+        object: grp,
+        seed: i + 740,
+        spacing: 310,
+        lateral: [-6.8, 6.8, -2.5, 2.5][i % 4],
+      });
     }
   }
 
@@ -264,7 +298,7 @@ export class ArcadeEffectsSystem {
     }
   }
 
-  update(dt, car) {
+  update(dt, car, traffic = null) {
     const progress = car.progress;
     this.comboTimer = Math.max(0, this.comboTimer - dt);
     this.boostTimer = Math.max(0, this.boostTimer - dt);
@@ -272,14 +306,18 @@ export class ArcadeEffectsSystem {
 
     this._updateBoostPads(dt, car, progress);
     this._updateOrbs(dt, car, progress);
+    this._updateRepairPickups(dt, car, progress);
     this._updateGates(dt, car, progress);
     this._updateSpeedTraps(dt, car, progress);
     this._updateBillboards(dt, car, progress);
+    this._updateNearMisses(dt, car, traffic);
+    this._updateHeat(dt, car);
     this._updateDriftScoring(dt, car);
     this._updateSpeedTrails(dt, car);
     this._updateFlames(dt, car);
     this._updateParticles(dt, car);
     this.hud?.setArcade(this.score, this.combo);
+    this.hud?.setHeat?.(this.heat);
     this._prevProgress = progress;
   }
 
@@ -340,6 +378,30 @@ export class ArcadeEffectsSystem {
     }
   }
 
+  _updateRepairPickups(dt, car, progress) {
+    for (const item of this.repairPickups) {
+      const z = this._loopedZ(progress, item, 160);
+      const key = `${item.seed}:${Math.floor(z / item.spacing)}`;
+      const isCollected = this.repaired.has(key);
+      const lateral = item.lateral + (seeded(item.seed + Math.floor(z / 500)) - 0.5) * 1.8;
+      this._placeOnRoad(item.object, z, lateral, 1.5 + Math.sin(performance.now() * 0.004 + item.seed) * 0.18);
+      item.object.rotation.y += dt * 2.0;
+      item.object.rotation.z += dt * 0.8;
+      item.object.visible = !isCollected;
+
+      if (!isCollected && Math.abs(z - progress) < 4.8 && Math.abs(lateral - car.lateral) < 2.35) {
+        this.repaired.add(key);
+        car.damage = Math.max(0, car.damage - 22);
+        car.turbo = Math.min(100, car.turbo + 14);
+        car.cameraShake = Math.max(car.cameraShake, 0.1);
+        this._raiseHeat(-12);
+        this.audio?.playPickup?.();
+        this._burst(car.position, 8, true);
+        this._addScore(325, "REPAIR KIT");
+      }
+    }
+  }
+
   _updateGates(dt, car, progress) {
     for (const item of this.gates) {
       const z = this._loopedZ(progress, item, 260);
@@ -373,6 +435,7 @@ export class ArcadeEffectsSystem {
       const kmh = Math.round(Math.abs(car.speed * 3.6));
       if (kmh >= item.target) {
         this._addScore(550 + (kmh - item.target) * 5, `SPEED TRAP ${kmh} KM/H`);
+        this._raiseHeat(7);
         car.turbo = Math.min(100, car.turbo + 20);
         car.cameraShake = Math.max(car.cameraShake, 0.22);
         this.audio?.playSpeedTrap?.();
@@ -405,6 +468,41 @@ export class ArcadeEffectsSystem {
       this.driftScoreTimer = 0;
       const points = 35 + car.slip * 90 + speedKmh * 0.18;
       this._addScore(points, "DRIFT");
+    }
+  }
+
+  _updateNearMisses(dt, car, traffic) {
+    const cars = traffic?.cars ?? [];
+    const speedKmh = Math.abs(car.speed * 3.6);
+    if (speedKmh < 75) return;
+
+    for (let i = 0; i < cars.length; i++) {
+      const item = cars[i];
+      if (!item.mesh.visible) continue;
+      const dx = item.mesh.position.x - car.position.x;
+      const dz = item.mesh.position.z - car.position.z;
+      const absDx = Math.abs(dx);
+      const key = `${i}:${Math.floor(item.mesh.position.z / 72)}`;
+      const closeBeside = Math.abs(dz) < 7.0 && absDx > 2.15 && absDx < 4.75;
+      if (!closeBeside || this.nearMisses.has(key)) continue;
+
+      this.nearMisses.add(key);
+      car.turbo = Math.min(100, car.turbo + 7);
+      car.cameraShake = Math.max(car.cameraShake, 0.12);
+      this._raiseHeat(8);
+      this._addScore(180 + speedKmh * 0.45, "NEAR MISS");
+    }
+  }
+
+  _updateHeat(dt, car) {
+    const speedKmh = Math.abs(car.speed * 3.6);
+    const speedHeat = speedKmh > 230 ? (speedKmh - 230) / 55 : -5.0;
+    const turboHeat = car.turboActive ? 5.5 : 0;
+    const driftHeat = car.drifting && speedKmh > 70 ? 2.4 : 0;
+    this.heat = THREE.MathUtils.clamp(this.heat + (speedHeat + turboHeat + driftHeat) * dt, 0, 100);
+
+    if (this.heat > 82 && speedKmh > 160) {
+      car.cameraShake = Math.max(car.cameraShake, 0.05 + (this.heat - 82) * 0.002);
     }
   }
 
@@ -504,6 +602,17 @@ export class ArcadeEffectsSystem {
     particle.object.material.color.copy(color);
   }
 
+  _burst(position, count, clean) {
+    for (let i = 0; i < count; i++) {
+      const angle = seeded(this.score + i + count) * Math.PI * 2;
+      const speed = clean ? 2.4 + seeded(i + 3) * 2.2 : 4.5 + seeded(i + 8) * 4.5;
+      const pos = position.clone();
+      pos.y += clean ? 0.9 : 0.35;
+      const vel = new THREE.Vector3(Math.cos(angle) * speed, clean ? 1.1 : 1.7, Math.sin(angle) * speed);
+      this._spawnParticle(pos, vel, !clean);
+    }
+  }
+
   _boostCar(car, strength = 1, label = "BOOST") {
     const cap = 550 / 3.6;
     car.speed = Math.min(cap, car.speed + BOOST_SPEED * strength);
@@ -519,5 +628,10 @@ export class ArcadeEffectsSystem {
     this.combo = Math.min(9, this.combo + 1);
     this.comboTimer = 4.0;
     if (label) this.hud?.setArcade(this.score, this.combo, label);
+  }
+
+  _raiseHeat(amount) {
+    this.heat = THREE.MathUtils.clamp(this.heat + amount, 0, 100);
+    this.hud?.setHeat?.(this.heat);
   }
 }

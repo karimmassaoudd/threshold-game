@@ -9,8 +9,11 @@ export class HUD {
       rpmValue: document.querySelector("#rpmValue"),
       gear:     document.querySelector("#gear"),
       nitro:    document.querySelector("#nitro"),
+      turboGauge:  document.querySelector("#turboGauge"),
+      turboNeedle: document.querySelector("#turboNeedle"),
       score:    document.querySelector("#score"),
       combo:    document.querySelector("#combo"),
+      heat:     document.querySelector("#heat"),
       toast:    document.querySelector("#arcadeToast"),
       lap:      document.querySelector("#lap"),
       time:     document.querySelector("#time"),
@@ -49,6 +52,14 @@ export class HUD {
     }
   }
 
+  setHeat(value) {
+    if (!this.nodes.heat) return;
+    const heat = Math.round(value);
+    this.nodes.heat.textContent = `${heat}%`;
+    this.nodes.heat.classList.toggle("warm", heat >= 35 && heat < 70);
+    this.nodes.heat.classList.toggle("hot", heat >= 70);
+  }
+
   _formatTime(seconds) {
     const m = Math.floor(seconds / 60);
     const s = (seconds - m * 60).toFixed(2).padStart(5, "0");
@@ -77,8 +88,17 @@ export class HUD {
     // Turbo badge
     if (this.nodes.nitro) {
       const pct = Math.round(car.turbo);
-      this.nodes.nitro.textContent = `TURBO ${pct}%`;
-      this.nodes.nitro.style.color  = car.turboActive ? "#ffcc00" : pct < 20 ? "#ff4444" : "";
+      this.nodes.nitro.textContent = `${pct}%`;
+      this.nodes.nitro.style.color = "";
+      if (this.nodes.turboNeedle) {
+        const angle = -118 + (pct / 100) * 236;
+        this.nodes.turboNeedle.style.setProperty("--turbo-needle", `${angle.toFixed(1)}deg`);
+      }
+      if (this.nodes.turboGauge) {
+        this.nodes.turboGauge.classList.toggle("boosting", !!car.turboActive);
+        this.nodes.turboGauge.classList.toggle("low", pct < 20);
+        this.nodes.turboGauge.style.setProperty("--turbo-arc", `${(pct * 2.6).toFixed(1)}deg`);
+      }
     }
 
     // Lap

@@ -179,6 +179,7 @@ export class RacingGame {
   // ── Settings broadcast ────────────────────────────────────────────────────
   applySettings() {
     this.sceneSetup.applySettings(this.settings);
+    this.road.applySettings(this.settings);
     this.cameraRig.applySettings(this.settings);
     this.audio.applySettings(this.settings);
     this.traffic.applySettings(this.settings);
@@ -204,8 +205,8 @@ export class RacingGame {
     this.physics.step(dt);
     this.car.update(dt, this.input, this.settings);
     this.road.update(this.car.position.z);
-    this.arcade.update(dt, this.car);
     this.traffic.update(dt, this.car, this.settings);
+    this.arcade.update(dt, this.car, this.traffic);
     this.cameraRig.update(dt, this.car, this.input);
     this.audio.update(this.car, this.input);
     this.sceneSetup.update(dt, this.car, this.settings);

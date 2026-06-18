@@ -118,111 +118,316 @@ html, body {
   position: absolute;
   bottom: 28px;
   right: 28px;
-  width: 190px;
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: var(--rL);
-  padding: 14px 16px 10px;
+  width: 244px;
+  background:
+    linear-gradient(145deg, rgba(14, 24, 31, 0.92), rgba(6, 12, 17, 0.86)),
+    radial-gradient(circle at 16% 0%, rgba(16, 217, 255, 0.16), transparent 44%);
+  border: 1px solid rgba(180, 235, 255, 0.16);
+  border-radius: 8px;
+  padding: 13px 14px 12px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 0 32px rgba(16,217,255,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow:
+    0 18px 46px rgba(0,0,0,0.42),
+    0 0 24px rgba(16,217,255,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.speedo::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), transparent 58%, var(--accent2));
+  opacity: 0.85;
+}
+.speedo::after {
+  content: "";
+  position: absolute;
+  right: -34px;
+  top: -44px;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 62%);
+  pointer-events: none;
 }
 
 .speedo-inner {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 0 10px;
+  position: relative;
+  z-index: 1;
 }
 .speedo-inner strong {
   font-family: var(--font-hud);
-  font-size: 3.4rem;
-  font-weight: 800;
+  font-size: 3.8rem;
+  font-weight: 900;
   color: #fff;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-shadow: 0 0 20px rgba(255,255,255,0.4);
+  line-height: 0.9;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 22px rgba(255,255,255,0.28);
 }
 .unit {
   font-family: var(--font-hud);
-  font-size: 0.62rem;
-  font-weight: 600;
-  color: var(--dim);
-  letter-spacing: 0.1em;
+  font-size: 0.64rem;
+  font-weight: 900;
+  color: rgba(210,235,244,0.58);
+  letter-spacing: 0.06em;
   align-self: flex-end;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+  white-space: nowrap;
 }
 
 .rpm-readout {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin: 0 0 5px;
+  margin: 0 0 6px;
   font-family: var(--font-hud);
+  position: relative;
+  z-index: 1;
 }
 .rpm-readout span {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: var(--dim);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: rgba(210,235,244,0.5);
 }
 .rpm-readout strong {
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 900;
-  color: #fff;
+  color: #ff3154;
   letter-spacing: 0.04em;
-  text-shadow: 0 0 10px rgba(16,217,255,0.35);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px rgba(255,36,56,0.48);
 }
 .rpm-readout strong.redline {
-  color: var(--accent2);
-  text-shadow: 0 0 12px rgba(255,36,56,0.8);
+  color: #ff1d45;
+  text-shadow: 0 0 14px rgba(255,36,56,0.9);
 }
 
 /* RPM bar */
 .rpm-bar {
-  height: 6px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 3px;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 9px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
 }
 .rpm-bar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #ff6600, var(--accent2));
-  border-radius: 3px;
+  background: linear-gradient(90deg, #55f3ff 0%, #9ee6c9 32%, #ff9b22 62%, #ff2448 100%);
+  border-radius: 2px;
   transition: width 0.05s linear;
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 10px rgba(255,36,72,0.42);
   width: 0%;
 }
 
-.mini-hud {
+.instrument-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .gear-badge {
   font-family: var(--font-hud);
-  font-size: 1.5rem;
+  font-size: 1.9rem;
   font-weight: 900;
   color: var(--accent);
-  text-shadow: 0 0 10px var(--accent);
-  width: 30px;
+  text-shadow: 0 0 16px rgba(16,217,255,0.85);
+  min-width: 52px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16,217,255,0.08);
+  border: 1px solid rgba(16,217,255,0.18);
+  border-radius: 6px;
   text-align: center;
 }
 
-.turbo-badge {
+.turbo-gauge {
+  --turbo-needle: -118deg;
+  --turbo-arc: 260deg;
+  --turbo-glow: rgba(255, 36, 72, 0.2);
+  width: 128px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 7px;
+  background:
+    radial-gradient(circle at 32% 20%, rgba(255,255,255,0.9), transparent 8%),
+    radial-gradient(circle at 70% 82%, rgba(0,0,0,0.34), transparent 18%),
+    linear-gradient(145deg, #f9fbfc 0%, #aeb7bc 20%, #3a4147 46%, #f0f4f6 74%, #727b82 100%);
+  box-shadow:
+    0 9px 24px rgba(0,0,0,0.38),
+    0 0 18px var(--turbo-glow),
+    inset 0 1px 2px rgba(255,255,255,0.82),
+    inset 0 -2px 4px rgba(0,0,0,0.5);
+  flex: 0 0 auto;
+}
+
+.turbo-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, #05070a 0 18%, transparent 19%),
+    conic-gradient(from -130deg, var(--accent) 0deg, #ffcc00 var(--turbo-arc), rgba(255,255,255,0.16) var(--turbo-arc), rgba(255,255,255,0.16) 260deg, transparent 260deg),
+    repeating-conic-gradient(from -130deg, rgba(255,255,255,0.9) 0deg 2deg, transparent 2deg 13deg),
+    radial-gradient(circle at 50% 48%, #030407 0 59%, #151b21 60% 100%);
+  border: 2px solid rgba(0,0,0,0.86);
+  box-shadow:
+    inset 0 0 18px rgba(0,0,0,0.95),
+    inset 0 0 2px rgba(255,255,255,0.65);
+}
+
+.turbo-face::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.52);
+  border-bottom-color: rgba(255,255,255,0.12);
+  opacity: 0.88;
+}
+
+.turbo-face::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 22%, rgba(255,255,255,0.08) 23%, transparent 31%),
+    linear-gradient(145deg, rgba(255,255,255,0.2), transparent 24%, transparent 68%, rgba(255,255,255,0.08));
+  pointer-events: none;
+  z-index: 6;
+}
+
+.turbo-label,
+.turbo-unit,
+.turbo-title,
+.turbo-value {
+  position: absolute;
   font-family: var(--font-hud);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 900;
+  color: #f8fbff;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(255,255,255,0.72);
+  pointer-events: none;
+}
+
+.turbo-label {
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.76);
+  text-shadow: none;
+}
+.turbo-label-min { left: 16px; bottom: 31px; }
+.turbo-label-mid {
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+}
+.turbo-label-max { right: 11px; bottom: 31px; }
+
+.turbo-unit {
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  font-size: 0.46rem;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.52);
+  text-shadow: none;
+}
+
+.turbo-title {
+  left: 50%;
+  top: 27px;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.64);
+  text-shadow: none;
+}
+
+.turbo-value {
+  left: 50%;
+  top: 40px;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  color: var(--accent);
+  letter-spacing: 0;
+  text-shadow: 0 0 10px rgba(16,217,255,0.9);
+  z-index: 7;
+}
+
+.turbo-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38%;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff1637, #ff263f 72%, #ff5d68);
+  box-shadow: 0 0 8px rgba(255,36,56,0.86);
+  transform-origin: 8% 50%;
+  transform: rotate(var(--turbo-needle)) translateX(-8%);
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.24, 1);
+  z-index: 4;
+}
+
+.turbo-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 32%, rgba(255,255,255,0.3), transparent 22%),
+    linear-gradient(145deg, #1a2028, #030406);
+  border: 2px solid rgba(0,0,0,0.9);
+  box-shadow: 0 0 9px rgba(0,0,0,0.9);
+  z-index: 5;
+}
+
+.turbo-gauge.low .turbo-value {
+  color: #ff4058;
+  text-shadow: 0 0 8px rgba(255,36,56,0.9);
+}
+
+.turbo-gauge.boosting {
+  --turbo-glow: rgba(255, 204, 0, 0.34);
+}
+
+.turbo-gauge.boosting .turbo-face {
+  box-shadow:
+    inset 0 0 18px rgba(0,0,0,0.95),
+    inset 0 0 2px rgba(255,255,255,0.65),
+    0 0 16px rgba(255,204,0,0.26);
+}
+
+.turbo-gauge.boosting .turbo-value {
   color: var(--turbo);
-  text-shadow: 0 0 8px var(--turbo);
-  background: rgba(255,204,0,0.08);
-  border: 1px solid rgba(255,204,0,0.25);
-  padding: 3px 7px;
-  border-radius: 4px;
+  text-shadow: 0 0 10px rgba(255,204,0,0.9);
+}
+
+.turbo-gauge.boosting .turbo-needle {
+  box-shadow: 0 0 12px rgba(255,36,56,0.95), 0 0 18px rgba(255,204,0,0.42);
 }
 
 /* ── Race Info ───────────────────────────────────────────────────────────── */
@@ -264,6 +469,14 @@ html, body {
 #combo.hot {
   color: var(--turbo);
   text-shadow: 0 0 10px var(--turbo);
+}
+#heat.warm {
+  color: #ffb347;
+  text-shadow: 0 0 9px rgba(255,179,71,0.7);
+}
+#heat.hot {
+  color: var(--accent2);
+  text-shadow: 0 0 12px rgba(255,36,56,0.85);
 }
 
 .arcade-toast {
@@ -699,12 +912,12 @@ body.turbo-active .speedo {
   box-shadow: 0 0 40px rgba(255, 204, 0, 0.35), 0 0 80px rgba(255,204,0,0.15);
   border-color: rgba(255, 204, 0, 0.35);
 }
-body.turbo-active .turbo-badge {
+body.turbo-active .turbo-gauge {
   animation: turboPulse 0.4s ease-in-out infinite alternate;
 }
 @keyframes turboPulse {
   from { box-shadow: none; }
-  to   { box-shadow: 0 0 12px var(--turbo); }
+  to   { box-shadow: 0 9px 24px rgba(0,0,0,0.38), 0 0 18px var(--turbo); }
 }
 
 /* ── Driving mode (hide prompt) ─────────────────────────────────────────── */
@@ -731,16 +944,51 @@ body.driving .prompt { opacity: 0; pointer-events: none; }
   .telemetry { gap: 5px; font-size: 0.52rem; }
   .telemetry span { padding: 2px 5px; }
   .speedo {
-    width: 126px;
+    width: 154px;
     bottom: calc(max(18px, env(safe-area-inset-bottom)) + 104px);
     right: max(10px, env(safe-area-inset-right));
-    padding: 9px 10px 8px;
+    padding: 10px 11px 9px;
     border-radius: 8px;
   }
-  .speedo-inner strong { font-size: 2.15rem; }
-  .unit { font-size: 0.48rem; padding-bottom: 6px; }
-  .gear-badge { font-size: 1.12rem; width: 22px; }
-  .turbo-badge { font-size: 0.45rem; padding: 2px 4px; }
+  .speedo-inner { margin-bottom: 7px; gap: 6px; }
+  .speedo-inner strong { font-size: 2.35rem; }
+  .unit { font-size: 0.48rem; padding-bottom: 5px; }
+  .rpm-readout { margin-bottom: 4px; }
+  .rpm-readout span { font-size: 0.46rem; }
+  .rpm-readout strong { font-size: 0.74rem; }
+  .rpm-bar { height: 6px; margin-bottom: 8px; }
+  .instrument-row { gap: 7px; }
+  .gear-badge { font-size: 1.18rem; min-width: 32px; height: 28px; border-radius: 5px; }
+  .turbo-gauge {
+    width: 74px;
+    padding: 5px;
+  }
+  .turbo-label { font-size: 0.38rem; }
+  .turbo-label-min { left: 9px; bottom: 18px; }
+  .turbo-label-mid { top: 7px; }
+  .turbo-label-max { right: 6px; bottom: 18px; }
+  .turbo-unit {
+    bottom: 10px;
+    font-size: 0.28rem;
+    letter-spacing: 0.08em;
+  }
+  .turbo-title {
+    top: 16px;
+    font-size: 0.3rem;
+    letter-spacing: 0.1em;
+  }
+  .turbo-value {
+    top: 23px;
+    font-size: 0.56rem;
+  }
+  .turbo-needle {
+    height: 4px;
+  }
+  .turbo-hub {
+    width: 13px;
+    height: 13px;
+    border-width: 1px;
+  }
   .race-info {
     bottom: calc(max(18px, env(safe-area-inset-bottom)) + 96px);
     left: max(10px, env(safe-area-inset-left));
@@ -798,15 +1046,27 @@ body.driving .prompt { opacity: 0; pointer-events: none; }
 @media (max-height: 480px) and (orientation: landscape) {
   .topbar { padding-top: max(5px, env(safe-area-inset-top)); }
   .speedo {
-    width: 116px;
+    width: 138px;
     bottom: max(10px, env(safe-area-inset-bottom));
   }
+  .speedo-inner strong { font-size: 2rem; }
+  .rpm-readout strong { font-size: 0.68rem; }
+  .gear-badge { min-width: 30px; height: 26px; font-size: 1.05rem; }
+  .turbo-gauge { width: 66px; padding: 4px; }
+  .turbo-label { font-size: 0.34rem; }
+  .turbo-label-min { left: 8px; bottom: 16px; }
+  .turbo-label-mid { top: 6px; }
+  .turbo-label-max { right: 5px; bottom: 16px; }
+  .turbo-unit { font-size: 0.26rem; bottom: 9px; }
+  .turbo-title { font-size: 0.28rem; top: 14px; }
+  .turbo-value { font-size: 0.5rem; top: 21px; }
   .race-info {
     bottom: max(10px, env(safe-area-inset-bottom));
     max-width: 112px;
   }
   .race-info .ri-item:nth-of-type(3),
   .race-info .ri-item:nth-of-type(5),
+  .race-info .ri-item:nth-of-type(6),
   .progress-bar {
     display: none;
   }
